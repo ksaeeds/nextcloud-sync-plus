@@ -20,6 +20,15 @@
  */
 export const HARD_EXCLUDED_FOLDERS: readonly string[] = ['.git', '.trash'];
 
+/** Git metadata is device-local at every depth, including repositories inside plugin folders. */
+export function isHardExcludedPath(path: string): boolean {
+  // Match complete segments only: .github, .gitignore and .git-backup remain syncable.
+  // Case-insensitive matching also protects repositories on macOS and iOS filesystems.
+  const segments = path.replace(/\\/g, '/').split('/');
+  return segments.some(segment => segment.toLowerCase() === '.git')
+    || isUnderExcludedFolder(path, HARD_EXCLUDED_FOLDERS);
+}
+
 /**
  * Normalize a user-entered folder path into the canonical vault-relative form used for
  * storage and comparison, or return null when the input denotes the whole vault (and

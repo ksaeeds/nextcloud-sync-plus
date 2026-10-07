@@ -15,6 +15,7 @@ import {
 import { IWebDAVClient } from '../../../../src/network/IWebDAVClient';
 import { IUploadStrategy } from '../../../../src/sync/upload/IUploadStrategy';
 import { sha256 } from '../../../../src/util/hash';
+import { isSystemExcluded } from '../../../../src/sync/policy';
 
 function summary(): SyncSessionSummary {
   return {
@@ -116,6 +117,27 @@ function build(o: Opts = {}, over: Partial<TransferDeps> = {}) {
     setLocal: (c: string | null) => { onDisk = c as string; },
   };
 }
+
+describe('TransferService Git exclusion', () => {
+  it.each(['.obsidian/plugins/prologue-kashif/.git/config', 'projects/repo/.GIT/objects/ab/cdef'])(
+    'blocks upload and download of %s without changing disk or tracking', async (path) => {
+      const { transfer, client, uploadStrategy, calls, diskContent } = build({}, {
+        isSystemExcluded: p => isSystemExcluded(p, {
+          excludedFolders: [], isUnderConfigDir: () => true, isConfigPathIncluded: () => true,
+        }),
+      });
+      const s = summary();
+      await transfer.uploadFile(client, uploadStrategy, path, 'h', 'r', 'etag', remote({ path }), s);
+      await transfer.downloadFile(client, remote({ path }), 'r', 'etag', s);
+      expect(calls.put).toEqual([]);
+      expect(calls.downloads).toBe(0);
+      expect(calls.wrote).toEqual([]);
+      expect(calls.setFile).toEqual([]);
+      expect(diskContent()).toBe('local body');
+      expect(s.uploadedCount + s.downloadedCount).toBe(0);
+    },
+  );
+});
 
 describe('TransferService.uploadFile', () => {
   it('does nothing when the local file has vanished', async () => {

@@ -14,7 +14,7 @@
 // logic below can be exercised at its boundaries at all.
 import { FileState } from '../../types';
 import { SIGNATURE_SAFETY_WINDOW_MS } from '../../util/limits';
-import { isUnderExcludedFolder, HARD_EXCLUDED_FOLDERS } from '../../util/excludedFolders';
+import { isUnderExcludedFolder, isHardExcludedPath } from '../../util/excludedFolders';
 import { isSyncTmpPath } from '../../data/LocalAdapter';
 import { DIR_BREAKER_REPORT_FILENAME, FILE_BREAKER_REPORT_FILENAME } from '../../ui/breakerReport';
 
@@ -121,11 +121,11 @@ export function isSystemExcluded(path: string, ctx: SystemExclusionContext): boo
   // "Destination file already exists!") and churn. Turning the log OFF makes it static and
   // syncable again. Another device's log (different host) is not written here and stays syncable.
   if (ctx.isActiveLogFile?.(path)) return true;
-  // Machine-managed vault-root folders (.git, .trash): permanent hard exclusion, independent of
+  // Git metadata at any depth and vault-root .trash: permanent hard exclusion, independent of
   // the user's list. `.git` piecewise sync corrupts the repo (discussion #6); `.trash` is
   // Obsidian's device-local trash whose sync clutters every device and churns against the
   // plugin's own trashFile-based deletion. Targeted list — other root dot content still syncs.
-  if (isUnderExcludedFolder(path, HARD_EXCLUDED_FOLDERS)) return true;
+  if (isHardExcludedPath(path)) return true;
   // User-managed excluded folders (feature 027): folder-prefix match, applied to every
   // path before the config-folder logic so it covers ordinary vault files too. This is an
   // additive layer on top of the hard exclusions above — those always take precedence.

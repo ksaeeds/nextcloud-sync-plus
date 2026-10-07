@@ -46,6 +46,18 @@ describe('isSystemExcluded — the plugin\'s own artefacts', () => {
 });
 
 describe('isSystemExcluded — hard-excluded machine folders', () => {
+  it('excludes Git metadata at any depth before config inclusion, including case variants', () => {
+    const c = ctx({ isUnderConfigDir: () => true, isConfigPathIncluded: () => true });
+    for (const p of ['projects/repo/.git', 'projects/repo/.git/config',
+      '.obsidian/plugins/prologue-kashif/.git/objects/ab/cdef',
+      '.obsidian/plugins/epilogue-kashif/.GIT/config']) {
+      expect(isSystemExcluded(p, c)).toBe(true);
+    }
+    for (const p of ['projects/.github/workflows/ci.yml', 'projects/.gitignore',
+      '.obsidian/plugins/other/.git-backup/config', '.obsidian/plugins/other/node_modules/lib/index.js']) {
+      expect(isSystemExcluded(p, c)).toBe(false);
+    }
+  });
   it('excludes .git and .trash and everything beneath them', () => {
     expect(isSystemExcluded('.git', ctx())).toBe(true);
     expect(isSystemExcluded('.git/objects/ab/cdef', ctx())).toBe(true);

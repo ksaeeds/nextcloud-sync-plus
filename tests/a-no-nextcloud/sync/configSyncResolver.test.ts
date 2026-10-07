@@ -11,6 +11,24 @@ function resolver(tree: Record<string, { files: string[]; folders: string[] }> =
 }
 
 describe('Plus complete config folder', () => {
+  it('never traverses nested Git repositories but retains plugin runtime and dependency files', async () => {
+    const other = `${cd}/plugins/other`;
+    const git = `${other}/.git`;
+    const { r, list } = resolver({
+      [cd]: { files: [], folders: [`${cd}/plugins`] },
+      [`${cd}/plugins`]: { files: [], folders: [other] },
+      [other]: { files: [`${other}/main.js`, `${other}/.gitignore`], folders: [git, `${other}/node_modules`] },
+      [git]: { files: [`${git}/config`], folders: [`${git}/objects`] },
+      [`${other}/node_modules`]: { files: [`${other}/node_modules/runtime.js`], folders: [] },
+    });
+    expect(await r.enumerateIncludedPaths()).toEqual([
+      `${other}/main.js`, `${other}/.gitignore`, `${other}/node_modules/runtime.js`,
+    ]);
+    expect(await r.enumerateIncludedDirectories()).not.toContain(git);
+    expect(list).not.toHaveBeenCalledWith(git);
+    expect(r.isIncluded(`${other}/.GIT/config`)).toBe(false);
+    expect(r.isIncluded(`${other}/.github/workflows/ci.yml`)).toBe(true);
+  });
   it('includes all configuration and other plugin paths, ignoring legacy category flags', () => {
     const { r } = resolver();
     for (const p of ['workspace.json', 'workspace-mobile.json', 'community-plugins.json', 'unknown.bin',

@@ -1,6 +1,7 @@
 import { ConfigSyncCategories, DavSyncSettings } from '../types';
 import { normalizePath } from 'obsidian';
 import { isSyncTmpPath, LocalAdapter } from '../data/LocalAdapter';
+import { isHardExcludedPath } from '../util/excludedFolders';
 
 /** Legacy category definitions retained for compatibility; Plus no longer uses an allowlist. */
 export const CORE_PLUGIN_CONFIG_FILES: readonly string[] = [
@@ -106,10 +107,10 @@ export class ConfigSyncResolver {
     return canonical === pd || canonical.startsWith(`${pd}/`);
   }
 
-  /** Include every config path except this plugin's directory. Legacy categories are ignored. */
+  /** Include config paths except this plugin's directory and hard exclusions. */
   isIncluded(path: string): boolean {
     if (!this.isUnderConfigDir(path) || !this.opts.settings.syncConfigFolder) return false;
-    return !this.isUnderPluginDir(path) && !isSyncTmpPath(path);
+    return !this.isUnderPluginDir(path) && !isHardExcludedPath(path) && !isSyncTmpPath(path);
   }
 
   /** The plugin directory and its ancestors must never be removed as a subtree. */

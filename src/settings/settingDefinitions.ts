@@ -419,7 +419,7 @@ function excludedFoldersGroup(host: SettingDefinitionsHost): SettingDefinitionGr
   const items: SettingGroupItem[] = [
     {
       name: 'Excluded folders',
-      desc: 'Folders that are never synced — neither uploaded nor downloaded. Matched by folder prefix at a folder boundary, additive on top of .git, .trash, the config plugins folder, and plugin state, which are already excluded automatically.',
+      desc: 'Folders that are never synced — neither uploaded nor downloaded. Matched by folder prefix at a folder boundary, additive on top of .git at every depth, vault-root .trash, and Nextcloud Sync Plus\'s own plugin folder, which are already excluded automatically.',
       aliases: ['ignore', 'exclude', 'skip', 'blacklist', 'git'],
       render: (setting: Setting) =>
         host.renderReadOnly(setting, excluded.length ? `${excluded.length} excluded` : 'None'),
