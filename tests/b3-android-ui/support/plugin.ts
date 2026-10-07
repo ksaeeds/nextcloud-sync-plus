@@ -11,7 +11,7 @@
 import { browser } from '@wdio/globals';
 
 /** Must match DEFAULT_PASSWORD_SECRET_ID in src/settings/SettingTab.ts. */
-export const PASSWORD_SECRET_ID = 'obsidian-nextcloudsync-password';
+export const PASSWORD_SECRET_ID = 'obsidian-nextcloud-sync-plus-password';
 
 export async function seedConnection(
   serverUrl: string,

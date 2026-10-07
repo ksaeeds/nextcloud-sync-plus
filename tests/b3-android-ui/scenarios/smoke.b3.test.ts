@@ -34,7 +34,7 @@ describe('b-3 smoke — plugin runs on a real Android runtime', function () {
   });
 
   // --- preconditions (not clause-tagged; see file header) ------------------------------------
-  it('the Nextcloud Sync plugin is installed and enabled', async () => {
+  it('the Nextcloud Sync Plus plugin is installed and enabled', async () => {
     const enabled = await browser.executeObsidian(
       ({ app }) => !!(app as any).plugins.enabledPlugins.has('nextcloud-sync'),
     );

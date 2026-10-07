@@ -75,7 +75,7 @@ export default class ObsidianNextcloudsync extends Plugin {
     const currentVersion = (this.app as App & { appVersion?: string }).appVersion ?? '';
     if (currentVersion && this.compareVersions(currentVersion, MIN_OBSIDIAN_VERSION) < 0) {
       new Notice(
-        `Nextcloud Sync requires Obsidian ${MIN_OBSIDIAN_VERSION} or later. Current: ${currentVersion}`,
+        `Nextcloud Sync Plus requires Obsidian ${MIN_OBSIDIAN_VERSION} or later. Current: ${currentVersion}`,
         0,
       );
       return;
@@ -103,7 +103,7 @@ export default class ObsidianNextcloudsync extends Plugin {
       this.manifest.version,
       this.hostToken(),
       () => debugLogPath(this.settings.logsFolder, this.hostToken()),
-      (err) => new Notice(`Nextcloud Sync: could not write the log file — ${(err as Error)?.message ?? String(err)}`, 8000),
+      (err) => new Notice(`Nextcloud Sync Plus: could not write the log file — ${(err as Error)?.message ?? String(err)}`, 8000),
     );
     void this.logger.log(`plugin loaded (obsidian=${currentVersion})`);
     // Record a full settings snapshot at the top of each debug-log session.

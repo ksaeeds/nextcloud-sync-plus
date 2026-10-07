@@ -1,4 +1,24 @@
-# Nextcloud Sync for Obsidian
+# Nextcloud Sync Plus for Obsidian
+
+Personal fork maintained by Kashif Saeed, based on [Nextcloud Sync 1.0.8 by Daisuke ITO](https://github.com/siosig/obsidian-nextcloudsync/tree/1.0.8), under the original MIT license.
+
+This release changes the display name, plugin ID, and credential namespace. It retains the upstream synchronization behavior and mobile support. The separate ID allows independent settings; enable only one sync plugin for the same remote vault.
+
+## Install on iPhone and iPad with BRAT
+
+1. Use Obsidian **1.13.0 or newer**.
+2. Install **BRAT** from Settings → Community plugins and enable it.
+3. Open BRAT settings, choose **Add beta plugin**, and enter `ksaeeds/nextcloud-sync-plus`.
+4. Install and enable **Nextcloud Sync Plus**.
+5. Configure your Nextcloud server URL and sign in separately on each device. Use the same vault name and remote target across devices.
+
+Release assets contain only plugin code, manifest, styles, and license. Vault notes, local settings, and credentials are not published. Sync against a live Nextcloud server and physical iOS devices has not been verified for this fork.
+
+## What changed (1.0.9)
+
+Plus branding, a separate plugin ID and credential namespace, and BRAT distribution.
+
+## Upstream documentation
 
 **Good news for anyone working across multiple desktops and mobile devices.**
 
@@ -12,7 +32,7 @@ The only cost you pay is waiting for the initial Vault index to complete on firs
 
 Bidirectional sync between your Obsidian Vault and Nextcloud — built **specifically for Nextcloud**, not just generic WebDAV.
 
-Most "WebDAV sync" plugins treat the server as a dumb file store: they compare modification times, copy files, and hope for the best. **Nextcloud Sync** instead talks to Nextcloud's own APIs (Capabilities, file IDs, checksums, versions, locking, Login Flow v2) to make syncing *safe*, *fast*, and *frictionless* — while still degrading gracefully to plain WebDAV when those APIs aren't available.
+Most "WebDAV sync" plugins treat the server as a dumb file store: they compare modification times, copy files, and hope for the best. **Nextcloud Sync Plus** instead talks to Nextcloud's own APIs (Capabilities, file IDs, checksums, versions, locking, Login Flow v2) to make syncing *safe*, *fast*, and *frictionless* — while still degrading gracefully to plain WebDAV when those APIs aren't available.
 
 > A Japanese translation is available at [`README.ja.md`](README.ja.md).
 
@@ -22,8 +42,8 @@ Most "WebDAV sync" plugins treat the server as a dumb file store: they compare m
 
 This plugin is still young and some behaviour can be rough around the edges. **Please tell me what you run into — it genuinely helps.** Whether something broke, something's missing, or you just have a thought after using it, I'd love to hear from you (impressions especially make my day!):
 
-- 🐛 **Report a bug** → [GitHub Issues](https://github.com/siosig/obsidian-nextcloudsync/issues)
-- 🙋‍♂️ **Request a feature / share your impressions** → [GitHub Discussions](https://github.com/siosig/obsidian-nextcloudsync/discussions)
+- 🐛 **Report a bug** → [GitHub Issues](https://github.com/ksaeeds/nextcloud-sync-plus/issues)
+- 🙋‍♂️ **Request a feature / share your impressions** → [GitHub Discussions](https://github.com/ksaeeds/nextcloud-sync-plus/discussions)
 
 ---
 
@@ -41,7 +61,7 @@ For the full version history of every release, see the **[changelog](CHANGELOG.m
 
 ## Why Nextcloud-specific? (vs. generic WebDAV)
 
-| Concern | Generic WebDAV plugin | **Nextcloud Sync** |
+| Concern | Generic WebDAV plugin | **Nextcloud Sync Plus** |
 |---------|-----------------------|--------------------|
 | Change detection | Modification time (clock-skew prone, false re-uploads) | **Content hash** + Nextcloud `sync-token` / checksums capability for true differential sync |
 | Rename / move | Delete + re-create (loses history, re-downloads everywhere) | **File-ID (`OC-FileId`) tracking** — a rename stays a rename on every device, history preserved |
@@ -116,19 +136,20 @@ Mobile is supported, with a few platform-aware differences (desktop behaviour is
 
 ### From the Community Plugins browser (recommended)
 1. In Obsidian, open **Settings → Community plugins**.
-2. Disable Restricted mode, click **Browse**, and search for **Nextcloud Sync**.
+2. Install and enable **BRAT** from Community plugins.
+3. In **BRAT → Add beta plugin**, enter `ksaeeds/nextcloud-sync-plus`, then install and enable it.
 3. **Install**, then **Enable**.
 
 ### Manual installation
 1. Download `main.js` and `manifest.json` (and `styles.css` if present) from the latest [GitHub Release](../../releases).
-2. Copy them into `<YourVault>/.obsidian/plugins/nextcloud-sync/`.
-3. Reload Obsidian and enable **Nextcloud Sync** under **Settings → Community plugins**.
+2. Copy them into `<YourVault>/.obsidian/plugins/nextcloud-sync-plus/`.
+3. Reload Obsidian and enable **Nextcloud Sync Plus** under **Settings → Community plugins**.
 
 ---
 
 ## Getting started
 
-1. Open **Settings → Nextcloud Sync**.
+1. Open **Settings → Nextcloud Sync Plus**.
 2. Enter your **Server URL** — the full WebDAV endpoint, `https://<host>/remote.php/dav/files/<user>/`,
    **not just the host**. Entering only `https://cloud.example.com` fails with **HTTP 405**. `<user>` is your
    Nextcloud user ID (usually not your email). You may append a subfolder (e.g. `.../<user>/Documents`) to
@@ -146,10 +167,10 @@ Your Vault is synced into a folder named after the Vault on the Nextcloud side, 
 The plugin syncs a Vault that is already open in Obsidian — it does not open a Nextcloud folder as a Vault. So a second device does not browse to the remote; it starts with its own Vault that happens to carry the same name:
 
 1. On the second device, **create a new, empty Vault** and give it **exactly the same name** as the first one. That name *is* the remote folder, matched character for character including case — `My Notes` and `my notes` are two separate folders on the server.
-2. Install and enable Nextcloud Sync in that Vault, enter the **same Server URL**, and authenticate.
+2. Install and enable Nextcloud Sync Plus in that Vault, enter the **same Server URL**, and authenticate.
 3. Run **Sync now**. The first run downloads the existing Vault into the new one.
 
-To confirm both devices agree, compare the read-only **Sync target (WebDAV)** row in **Settings → Nextcloud Sync**: it shows the effective remote path (Server URL plus Vault folder). If that line reads identically on both devices, they point at the same place.
+To confirm both devices agree, compare the read-only **Sync target (WebDAV)** row in **Settings → Nextcloud Sync Plus**: it shows the effective remote path (Server URL plus Vault folder). If that line reads identically on both devices, they point at the same place.
 
 On Obsidian mobile, this means **Create new vault** — not *Set up Obsidian Sync*, which is Obsidian's own paid service, and not *Open folder as vault*, which only opens a folder already present in the phone's storage.
 
@@ -277,7 +298,7 @@ On connect, the plugin probes `/status.php` (maintenance mode) and `/ocs/v1.php/
 
 Sync correctness is guarded by an extensive automated test suite: **hundreds of fast pure-logic tests** (run on every change) plus **live end-to-end suites that drive two devices against a real Nextcloud server**, including exhaustive option-combination matrices for conflict resolution and multi-device convergence.
 
-These tests exist specifically to prevent sync-inconsistency states — **data loss, endless re-uploading/re-downloading, a remote change that never reaches the local copy, or a local change that never reaches the remote**. Even so, no test suite can cover every possible case, and unintended behavior can never be entirely ruled out. **If you ever run into such a situation, please don't hesitate to [open an issue](https://github.com/siosig/obsidian-nextcloudsync/issues) — it will be addressed as quickly as possible.**
+These tests exist specifically to prevent sync-inconsistency states — **data loss, endless re-uploading/re-downloading, a remote change that never reaches the local copy, or a local change that never reaches the remote**. Even so, no test suite can cover every possible case, and unintended behavior can never be entirely ruled out. **If you ever run into such a situation, please don't hesitate to [open an issue](https://github.com/ksaeeds/nextcloud-sync-plus/issues) — it will be addressed as quickly as possible.**
 
 ---
 
@@ -305,8 +326,8 @@ These tests exist specifically to prevent sync-inconsistency states — **data l
 
 Bug reports and ideas are genuinely welcome. The plugin is still maturing, and most of what has been fixed so far came from someone taking the time to describe what they saw.
 
-- 🐛 **Report a bug** → [GitHub Issues](https://github.com/siosig/obsidian-nextcloudsync/issues)
-- 🙋‍♂️ **Request a feature / share your impressions** → [GitHub Discussions](https://github.com/siosig/obsidian-nextcloudsync/discussions)
+- 🐛 **Report a bug** → [GitHub Issues](https://github.com/ksaeeds/nextcloud-sync-plus/issues)
+- 🙋‍♂️ **Request a feature / share your impressions** → [GitHub Discussions](https://github.com/ksaeeds/nextcloud-sync-plus/discussions)
 
 **Please open an issue or a discussion rather than sending a pull request.** A PR that arrives unannounced is read as input and valued as such, but it is unlikely to be merged as it stands. This is a single-maintainer project with a deliberate design policy — user-facing options are kept deliberately few, and behaviour is pinned by a specification that the test suite checks against — so whether a change fits depends on decisions that are not visible from the code alone, and on what is already in flight. Judging that after the code is written is harder than agreeing on the approach beforehand, and it wastes your effort whenever the answer turns out to be no. Describe what you want to change and why; if it fits, the approach can be settled before you write anything.
 
@@ -315,3 +336,7 @@ Bug reports and ideas are genuinely welcome. The plugin is still maturing, and m
 ## License
 
 [MIT](LICENSE) © Daisuke ITO
+
+## Validation
+
+`pnpm run build`, `pnpm run lint`, and `pnpm run secretlint` pass. The initial upstream test run passed 1,580 tests across 147 suites. One additional suite (`sliderLimits.test.ts`) cannot load because upstream does not publish `specs/main/desktop/settings.html`. `pnpm run test:portable` excludes that suite and forces Jest to exit because upstream leaves asynchronous handles open. Live-server and physical iOS tests require separate validation.

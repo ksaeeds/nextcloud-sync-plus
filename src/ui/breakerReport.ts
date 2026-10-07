@@ -24,7 +24,7 @@ export const FILE_BREAKER_REPORT_FILENAME = 'nextcloud-sync-file-breaker-report.
  */
 export function formatDirBreakerReportNote(skipped: { deleteRemote: string[]; trashLocal: string[] }): string {
   const lines: string[] = [
-    '# Nextcloud Sync — directory mass-delete breaker report',
+    '# Nextcloud Sync Plus — directory mass-delete breaker report',
     '',
     'This note lists every directory the mass-delete safety breaker refused to delete, because too ' +
       'many looked deleted at once (often a sign of a partial or failed remote listing, not a real ' +
@@ -49,7 +49,7 @@ export function formatDirBreakerReportNote(skipped: { deleteRemote: string[]; tr
  */
 export function formatFileBreakerReportNote(all: string[]): string {
   const lines: string[] = [
-    '# Nextcloud Sync — file mass-delete breaker report',
+    '# Nextcloud Sync Plus — file mass-delete breaker report',
     '',
     'This note lists every file the mass-delete safety breaker refused to delete locally, because too ' +
       'many appeared deleted on the remote at once (often a sign of a partial or failed remote ' +

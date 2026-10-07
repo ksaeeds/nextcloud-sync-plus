@@ -55,7 +55,7 @@ export class LoginFlowV2 {
     const res = await requestUrl({
       url: `${base}/index.php/login/v2`,
       method: 'POST',
-      headers: { 'User-Agent': 'Obsidian Nextcloud Sync' },
+      headers: { 'User-Agent': 'Obsidian Nextcloud Sync Plus' },
       throw: false,
     });
     if (res.status === 404 || res.status === 405) {

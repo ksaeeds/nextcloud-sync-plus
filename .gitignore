@@ -68,3 +68,6 @@ CLAUDE.md
 /.vscode/
 /specs/
 /CLAUDE.md
+
+# Local deployment backup (never publish vault configuration)
+local-install-backup/

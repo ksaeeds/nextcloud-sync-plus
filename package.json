@@ -1,6 +1,6 @@
 {
-  "name": "obsidian-nextcloudsync",
-  "version": "1.0.8",
+  "name": "nextcloud-sync-plus",
+  "version": "1.0.9",
   "description": "Bidirectional sync between Obsidian and Nextcloud",
   "main": "main.js",
   "packageManager": "pnpm@12.3.4",
@@ -19,7 +19,8 @@
     "test:b2:instance": "bash scripts/b2-instance.sh",
     "test:b3": "wdio run wdio.android.conf.mts",
     "test:b3:instance": "bash scripts/b3-android.sh",
-    "test:b4": "bash scripts/b4-plain-webdav.sh"
+    "test:b4": "bash scripts/b4-plain-webdav.sh",
+    "test:portable": "jest --runInBand --forceExit --testPathIgnorePatterns=sliderLimits.test.ts"
   },
   "keywords": [
     "obsidian",

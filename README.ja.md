@@ -1,4 +1,6 @@
-# Nextcloud Sync for Obsidian
+> Personal fork: see [README.md](README.md) for Plus release (1.0.9) and BRAT installation. Requires Obsidian 1.13.0 or newer. The documentation below is inherited from upstream 1.0.8.
+
+# Nextcloud Sync Plus for Obsidian
 
 **複数のデスクトップ・モバイル端末をまたいで作業しているすべての方へ朗報です。**
 
@@ -12,7 +14,7 @@
 
 Obsidian Vault と Nextcloud を双方向同期します。汎用的な WebDAV ではなく、**Nextcloud 専用**に作られています。
 
-多くの「WebDAV 同期」プラグインは、サーバーを単なるファイル置き場として扱います。更新日時を比較し、ファイルをコピーして、うまくいくことを祈るだけです。**Nextcloud Sync** はそうではなく、Nextcloud 自身の API（Capabilities、ファイル ID、チェックサム、バージョン、ロック、Login Flow v2）を活用して、同期を *安全* に・*高速* に・*摩擦なく* します。同時に、それらの API が利用できない場合は素の WebDAV へグレースフルにフォールバックします。
+多くの「WebDAV 同期」プラグインは、サーバーを単なるファイル置き場として扱います。更新日時を比較し、ファイルをコピーして、うまくいくことを祈るだけです。**Nextcloud Sync Plus** はそうではなく、Nextcloud 自身の API（Capabilities、ファイル ID、チェックサム、バージョン、ロック、Login Flow v2）を活用して、同期を *安全* に・*高速* に・*摩擦なく* します。同時に、それらの API が利用できない場合は素の WebDAV へグレースフルにフォールバックします。
 
 > 英語版（原文）は [`README.md`](README.md) を参照してください。
 
@@ -41,7 +43,7 @@ Obsidian Vault と Nextcloud を双方向同期します。汎用的な WebDAV �
 
 ## なぜ Nextcloud 特化なのか（汎用 WebDAV との違い）
 
-| 観点 | 汎用 WebDAV プラグイン | **Nextcloud Sync** |
+| 観点 | 汎用 WebDAV プラグイン | **Nextcloud Sync Plus** |
 |------|----------------------|--------------------|
 | 変更検出 | 更新日時（時刻ずれに弱く、誤った再アップロードを招く） | **内容ハッシュ** ＋ Nextcloud の `sync-token` / checksums capability による真の差分同期 |
 | リネーム / 移動 | 削除＋再作成（履歴を失い、全デバイスで再ダウンロード） | **ファイル ID（`OC-FileId`）追跡** — リネームは全デバイスでリネームのまま、履歴を保持 |
@@ -116,19 +118,19 @@ Obsidian Vault と Nextcloud を双方向同期します。汎用的な WebDAV �
 
 ### コミュニティプラグインブラウザから（推奨）
 1. Obsidian で **設定 → コミュニティプラグイン** を開きます。
-2. 制限モードを解除し、**閲覧** をクリックして **Nextcloud Sync** を検索します。
+2. 制限モードを解除し、**閲覧** をクリックして **Nextcloud Sync Plus** を検索します。
 3. **インストール** し、続けて **有効化** します。
 
 ### 手動インストール
 1. 最新の [GitHub Release](../../releases) から `main.js` と `manifest.json`（あれば `styles.css`）をダウンロードします。
-2. それらを `<YourVault>/.obsidian/plugins/nextcloud-sync/` にコピーします。
-3. Obsidian をリロードし、**設定 → コミュニティプラグイン** で **Nextcloud Sync** を有効化します。
+2. それらを `<YourVault>/.obsidian/plugins/nextcloud-sync-plus/` にコピーします。
+3. Obsidian をリロードし、**設定 → コミュニティプラグイン** で **Nextcloud Sync Plus** を有効化します。
 
 ---
 
 ## はじめかた
 
-1. **設定 → Nextcloud Sync** を開きます。
+1. **設定 → Nextcloud Sync Plus** を開きます。
 2. **サーバー URL** を入力します。**ホストだけでは不十分**で、WebDAV エンドポイント全体
    （`https://<host>/remote.php/dav/files/<user>/`）を指定してください。`https://cloud.example.com` のように
    ホストだけを入れると **HTTP 405** で失敗します。`<user>` は Nextcloud のユーザー ID（通常メールアドレス
@@ -146,10 +148,10 @@ Obsidian Vault と Nextcloud を双方向同期します。汎用的な WebDAV �
 このプラグインが同期するのは、すでに Obsidian で開いている Vault です。Nextcloud 上のフォルダを Vault として開く仕組みではありません。だから 2 台目はリモートを参照しにいくのではなく、同じ名前を持つ自分用の Vault から始めます。
 
 1. 2 台目の端末で**空の Vault を新規作成**し、1 台目と**まったく同じ名前**を付けます。この名前がそのままリモートのフォルダ名になり、大文字小文字まで含めて一字一句一致している必要があります。`My Notes` と `my notes` はサーバー上では別のフォルダです。
-2. その Vault に Nextcloud Sync をインストールして有効化し、**同じサーバー URL** を入力して認証します。
+2. その Vault に Nextcloud Sync Plus をインストールして有効化し、**同じサーバー URL** を入力して認証します。
 3. **Sync now** を実行します。初回実行で、既存の Vault が新しい Vault へダウンロードされます。
 
-両端末が同じ場所を向いているかは、**設定 → Nextcloud Sync** の読み取り専用の行 **Sync target (WebDAV)** で確認できます。ここには実際のリモートパス（サーバー URL ＋ Vault フォルダ）が表示されるので、両端末で同一なら同じ場所を指しています。
+両端末が同じ場所を向いているかは、**設定 → Nextcloud Sync Plus** の読み取り専用の行 **Sync target (WebDAV)** で確認できます。ここには実際のリモートパス（サーバー URL ＋ Vault フォルダ）が表示されるので、両端末で同一なら同じ場所を指しています。
 
 Obsidian モバイルでは **Create new vault** を選びます。*Set up Obsidian Sync* は Obsidian 自身の有料サービスなので違います。*Open folder as vault* も、端末内にすでに存在するフォルダを開くだけなので違います。
 

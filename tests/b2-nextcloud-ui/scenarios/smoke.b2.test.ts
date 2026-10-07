@@ -12,7 +12,7 @@ import { requireUiEnv } from '../support/env';
 const ui = requireUiEnv();
 
 describe('[SPEC:FR-025] b-2 smoke — enable, settings, manual sync, status', function () {
-  it('the Nextcloud Sync plugin is installed and enabled', async () => {
+  it('the Nextcloud Sync Plus plugin is installed and enabled', async () => {
     const enabled = await browser.executeObsidian(
       ({ app }) => !!(app as any).plugins.enabledPlugins.has('nextcloud-sync'),
     );

@@ -90,6 +90,6 @@ export class StatusBarItem implements IStatusBar {
     if (this.conflictCount > 0) return `${this.conflictCount} unresolved conflict(s). Search #conflict to find them.`;
     if (this.errorCount > 0) return `${this.errorCount} file(s) failed to sync and will be retried.`;
     if (this.lastSyncTime) return `Last synced: ${new Date(this.lastSyncTime).toLocaleString()}`;
-    return 'Nextcloud Sync';
+    return 'Nextcloud Sync Plus';
   }
 }

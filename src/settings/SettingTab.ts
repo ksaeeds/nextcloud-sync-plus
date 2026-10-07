@@ -25,9 +25,9 @@ import {
 // login flow, and the handful of rows that draw themselves.
 
 /** Default secret ID in SecretStorage (users can pick a different ID via "Link…"). */
-const DEFAULT_PASSWORD_SECRET_ID = 'obsidian-nextcloudsync-password';
+const DEFAULT_PASSWORD_SECRET_ID = 'obsidian-nextcloud-sync-plus-password';
 /** Key under which older versions stored the password in localStorage (for migration). */
-const LEGACY_CREDENTIALS_KEY = 'obsidian-nextcloudsync-password';
+const LEGACY_CREDENTIALS_KEY = 'obsidian-nextcloud-sync-plus-password';
 
 export class NextcloudSyncSettingTab extends PluginSettingTab implements SettingDefinitionsHost {
   constructor(app: App, private readonly plugin: ObsidianNextcloudsync) {

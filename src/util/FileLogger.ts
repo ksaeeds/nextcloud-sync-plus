@@ -48,7 +48,7 @@ export class FileLogger {
         await this.adapter.append(p, line);
       } else {
         await ensureParentFolder(this.adapter, p);
-        await this.adapter.write(p, `# Nextcloud Sync — diagnostic log\n\n${line}`);
+        await this.adapter.write(p, `# Nextcloud Sync Plus — diagnostic log\n\n${line}`);
       }
     } catch (err) {
       // Never let diagnostic logging interfere with the flow being logged (do not rethrow), but

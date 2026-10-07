@@ -11,7 +11,7 @@ describe('[SPEC:MDV-7] breaker report note formatting (feature 056)', () => {
     const trashLocal = Array.from({ length: 12 }, (_, i) => `local-only/d${i}`);
     const note = formatDirBreakerReportNote({ deleteRemote, trashLocal });
 
-    expect(note).toContain('# Nextcloud Sync — directory mass-delete breaker report');
+    expect(note).toContain('# Nextcloud Sync Plus — directory mass-delete breaker report');
     expect(note).toContain(`(${deleteRemote.length})`);
     expect(note).toContain(`(${trashLocal.length})`);
     for (const p of [...deleteRemote, ...trashLocal]) {
@@ -31,7 +31,7 @@ describe('[SPEC:MDV-7] breaker report note formatting (feature 056)', () => {
   test('formatFileBreakerReportNote lists every path with a count, no truncation', () => {
     const all = Array.from({ length: 23 }, (_, i) => `note${i}.md`);
     const note = formatFileBreakerReportNote(all);
-    expect(note).toContain('# Nextcloud Sync — file mass-delete breaker report');
+    expect(note).toContain('# Nextcloud Sync Plus — file mass-delete breaker report');
     expect(note).toContain(`(${all.length})`);
     for (const p of all) {
       expect(note).toContain(`- ${p}`);

@@ -1,3 +1,11 @@
+# Nextcloud Sync Plus changelog
+
+## [1.0.9] - 2026-10-07
+
+- Personal fork of upstream 1.0.8 with Plus branding and a separate plugin ID and credential namespace.
+- Added BRAT installation instructions for iPhone and iPad.
+- Preserved upstream MIT license and synchronization behavior.
+
 # 変更履歴
 
 **Nextcloud Sync for Obsidian** の主要な変更点をまとめています。

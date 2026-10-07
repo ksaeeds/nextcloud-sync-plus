@@ -1,9 +1,10 @@
 {
-  "id": "nextcloud-sync",
-  "name": "Nextcloud Sync",
-  "version": "1.0.8",
+  "id": "nextcloud-sync-plus",
+  "name": "Nextcloud Sync Plus",
+  "version": "1.0.9",
   "minAppVersion": "1.13.0",
-  "description": "Bidirectional sync between your Vault and Nextcloud using hash-based change detection.",
-  "author": "Daisuke ITO",
-  "isDesktopOnly": false
+  "description": "Personal fork of Nextcloud Sync: bidirectional Obsidian and Nextcloud synchronization.",
+  "author": "Kashif Saeed; based on Nextcloud Sync by Daisuke ITO",
+  "isDesktopOnly": false,
+  "authorUrl": "https://github.com/ksaeeds"
 }
