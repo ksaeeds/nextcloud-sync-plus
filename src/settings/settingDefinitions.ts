@@ -1,6 +1,5 @@
 import type { Setting, SettingDefinitionItem, SettingDefinitionGroup, SettingGroupItem, TFolder } from 'obsidian';
 import type { DavSyncSettings } from '../types';
-import { CONFIG_SYNC_CATEGORIES } from '../sync/ConfigSyncResolver';
 import { SLIDER_LIMITS } from './sliderLimits';
 import { SERVER_URL_DESC, SIGN_IN_HELP, SIGN_IN_MANUAL_DIVIDER } from './settingsCopy';
 import { isSupportedNextcloudVersion } from '../util/version';
@@ -95,7 +94,8 @@ export const UI_LESS_SETTING_KEYS: readonly (keyof DavSyncSettings)[] = [
   'logsFolder',          // fixed to the vault root (feature 032)
   'statusFilter',        // persisted UI state of the Sync Status dialog, not a preference
   'lastKnownServerVersion', // observed from the server, for the version-recommendation banner
-  'configSync',          // container object; its categories bind through their own rows
+  'configSyncRevision',  // one-time Plus scope migration
+  'configSync',          // legacy categories; full-folder sync ignores them
 ];
 
 /** Rows drawn imperatively, grouped by why they cannot be `control` rows. */
@@ -139,7 +139,7 @@ const CONFLICT_STRATEGY_OPTIONS = {
  *
  * Called on every render (obsidian.d.ts:6577-6583), which is what lets the row set be dynamic:
  * one row per excluded folder, and two config-category rows only while the master toggle is on.
- * The count is therefore `27 + excludedFolders.length + (syncConfigFolder ? 2 : 0)` — not a
+ * The count is therefore `27 + excludedFolders.length` — not a
  * constant, a fact that three separate attempts to count the old implementation got wrong.
  */
 export function buildSettingDefinitions(host: SettingDefinitionsHost): SettingDefinitionItem[] {
@@ -451,23 +451,11 @@ function configFolderGroup(host: SettingDefinitionsHost): SettingDefinitionGroup
   const items: SettingGroupItem[] = [
     {
       name: 'Sync config folder',
-      desc: `Opt in to syncing parts of the ${host.configDir} config folder across devices. Off by default — only notes and other vault files sync. Community plugins are never synced; their files stay device-local. A synced change to core-plugin settings may need an Obsidian restart to take effect on the other device.`,
+      desc: `Sync the complete ${host.configDir} folder, including community plugins, their settings and assets, and workspace layouts. Only Nextcloud Sync Plus's own plugin folder is always excluded. Enabled by default. Reload Obsidian after downloading plugin or settings changes.`,
       aliases: ['obsidian folder', 'appearance', 'themes', 'hotkeys', 'settings sync'],
       control: { type: 'toggle', key: 'syncConfigFolder' },
     },
   ];
-  // Category rows exist only while the master toggle is on — the second source of dynamic rows.
-  if (host.settings.syncConfigFolder) {
-    for (const category of CONFIG_SYNC_CATEGORIES) {
-      items.push({
-        name: category.label,
-        desc: category.description,
-        // Dotted key: the value lives at settings.configSync.<category>, and spelling the path out
-        // keeps the storage location visible in the definition instead of hidden in a setter.
-        control: { type: 'toggle', key: `configSync.${category.key}` },
-      });
-    }
-  }
   return group(`Config folder (${host.configDir})`, items);
 }
 

@@ -1,7 +1,7 @@
 {
   "id": "nextcloud-sync-plus",
   "name": "Nextcloud Sync Plus",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "minAppVersion": "1.13.0",
   "description": "Personal fork of Nextcloud Sync: bidirectional Obsidian and Nextcloud synchronization.",
   "author": "Kashif Saeed; based on Nextcloud Sync by Daisuke ITO",

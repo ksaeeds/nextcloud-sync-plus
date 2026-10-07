@@ -24,6 +24,8 @@ import { FileLogger } from '../../util/FileLogger';
 
 export interface DirectoryDeps {
   app: App;
+  enumerateIncludedConfigDirectories?(): Promise<string[]>;
+  isProtectedDirectory?(path: string): boolean;
   stateDB: Pick<StateDB,
     'getAllDirs' | 'setDir' | 'deleteDir' | 'requestSave' | 'getAllFiles' | 'deleteFile'>;
   journal: SyncJournal;
@@ -77,6 +79,7 @@ export class DirectoryReconciler {
     const localDirs = new Set(
       (vault.getAllFolders?.() ?? []).map(f => f.path).filter(p => p && p !== '/'),
     );
+    for (const p of await this.deps.enumerateIncludedConfigDirectories?.() ?? []) localDirs.add(p);
     const tracked = new Map(this.deps.stateDB.getAllDirs().map(d => [d.path, d]));
 
     const plan = classifyDirectories(remoteDirs, localDirs, tracked, (p) => this.deps.isSystemExcluded(p));
@@ -129,6 +132,7 @@ export class DirectoryReconciler {
     // DELETE remote (children before parents; probe + optional lock).
     for (const p of deleteRemote.sort(deepFirst)) {
       if (this.deps.isCancelled()) break;
+      if (this.deps.isProtectedDirectory?.(p)) continue;
       let token: string | null = null;
       try {
         token = await this.deps.transfer.acquireLock(client, p);
@@ -150,6 +154,7 @@ export class DirectoryReconciler {
     // TRASH local (children before parents).
     for (const p of trashLocal.sort(deepFirst)) {
       if (this.deps.isCancelled()) break;
+      if (this.deps.isProtectedDirectory?.(p)) continue;
       // Feature 081 (issue #46): a folder absent from the listing is a reason to look, not a reason to
       // delete. Files already refuse to delete without proof (applyLocalDeletion needs a checksum
       // match); folders had no such guard, and one missing folder is one deletion — below anything
@@ -164,7 +169,7 @@ export class DirectoryReconciler {
       }
       const folder = this.deps.app.vault.getAbstractFileByPath(p);
       try {
-        if (folder instanceof TFolder) await this.trashFolder(folder);
+        await this.removeLocalDirectory(p, folder);
         // Feature 086: the plugin moving a folder to `.trash` is NOT the user deleting its contents.
         // Leaving the child rows tracked made the next sync read them as local deletions and push
         // them to the server, turning a local-only disappearance into a real remote one.
@@ -185,6 +190,20 @@ export class DirectoryReconciler {
    * the paths are registered as the plugin's own doing FIRST — the events can land at any point after
    * this, and the tracking drop below is only the second line of defence.
    */
+  private async removeLocalDirectory(path: string, folder: unknown): Promise<void> {
+    if (this.deps.isSystemExcluded(path) || this.deps.isProtectedDirectory?.(path)) {
+      throw new Error(`Protected directory: ${path}`);
+    }
+    if (folder instanceof TFolder) {
+      await this.trashFolder(folder);
+    } else if (await this.deps.app.vault.adapter.exists(path)) {
+      const listing = await this.deps.app.vault.adapter.list(path);
+      if (listing.files.length || listing.folders.length) throw new Error(`Directory is not empty: ${path}`);
+      this.deps.markOwnEvent(path);
+      await this.deps.app.vault.adapter.rmdir(path, false);
+    }
+  }
+
   private async trashFolder(folder: TFolder): Promise<void> {
     const stale = collectSubtreePaths(this.deps.stateDB, folder.path);
     // The folder itself is in `stale.dirs` when it is tracked, and it always needs registering, so
@@ -222,6 +241,9 @@ export class DirectoryReconciler {
     category: 'deleteRemote' | 'trashLocal',
     choice: 'remote' | 'local',
   ): Promise<void> {
+    if (this.deps.isSystemExcluded(path) || this.deps.isProtectedDirectory?.(path)) {
+      throw new Error(`Protected directory: ${path}`);
+    }
     if (category === 'deleteRemote') {
       if (choice === 'remote') {
         // Remote is correct: undo the apparent local deletion by recreating the folder locally.
@@ -236,7 +258,7 @@ export class DirectoryReconciler {
       if (choice === 'remote') {
         // Remote absence is correct: let the deletion proceed locally.
         const folder = this.deps.app.vault.getAbstractFileByPath(path);
-        if (folder instanceof TFolder) await this.trashFolder(folder);
+        await this.removeLocalDirectory(path, folder);
         this.forgetSubtree(path); // feature 086: same amplifier as the reconcile path
 
       } else {

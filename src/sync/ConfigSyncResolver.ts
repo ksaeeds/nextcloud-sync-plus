@@ -1,16 +1,8 @@
 import { ConfigSyncCategories, DavSyncSettings } from '../types';
-import { LocalAdapter } from '../data/LocalAdapter';
+import { normalizePath } from 'obsidian';
+import { isSyncTmpPath, LocalAdapter } from '../data/LocalAdapter';
 
-/**
- * Fixed allowlist of known Obsidian core-plugin config filenames (relative to the config dir)
- * claimed by the "Core plugin settings" category. A fixed allowlist (not a denylist of
- * "everything uncategorized") is used deliberately so device-specific files like
- * `workspace.json` and unknown/community-origin files are never swept in.
- *
- * `bookmarks.json` is intentionally absent — it is owned by the dedicated Bookmarks category
- * (single ownership). This is a data list: it can be extended in one place as Obsidian ships
- * new core plugins, with no logic change.
- */
+/** Legacy category definitions retained for compatibility; Plus no longer uses an allowlist. */
 export const CORE_PLUGIN_CONFIG_FILES: readonly string[] = [
   'core-plugins.json',
   'core-plugins-migration.json',
@@ -51,12 +43,7 @@ export interface ConfigSyncCategoryDescriptor {
   matches(rel: string): boolean;
 }
 
-/**
- * The two config-sync categories (feature 029: Bookmarks + Other settings). This single list drives
- * BOTH the include decision (iterate enabled categories) and the settings UI (one toggle per
- * descriptor), so the UI and the sync logic cannot drift apart. "Other settings" folds together the
- * former appearance / themes-snippets / hotkeys / core-plugins categories.
- */
+/** Legacy category descriptors; the complete-folder setting supersedes these. */
 export const CONFIG_SYNC_CATEGORIES: readonly ConfigSyncCategoryDescriptor[] = [
   {
     key: 'bookmarks',
@@ -83,8 +70,7 @@ export interface ConfigSyncResolverOptions {
   settings: Pick<DavSyncSettings, 'syncConfigFolder' | 'configSync'>;
   /**
    * This plugin's own directory (`<configDir>/plugins/<id>`), holding the sync-state DB and
-   * data.json. A hard exclusion — never synced. (Already covered by the `plugins/` rule, but
-   * kept explicit as defense-in-depth per FR-004.)
+   * data.json. A hard exclusion — never synced.
    */
   pluginDir: string;
   /** Used only by `enumerateIncludedPaths` to list/stat included files. */
@@ -115,71 +101,49 @@ export class ConfigSyncResolver {
   }
 
   private isUnderPluginDir(path: string): boolean {
-    const pd = this.opts.pluginDir;
-    return path === pd || path.startsWith(`${pd}/`);
+    const pd = normalizePath(this.opts.pluginDir).toLowerCase();
+    const canonical = normalizePath(path).toLowerCase();
+    return canonical === pd || canonical.startsWith(`${pd}/`);
   }
 
-  /**
-   * Whether a config-folder path is included in the sync given current settings. Pure (no I/O).
-   * Hard exclusions (plugins/, the plugin dir) are evaluated before category matching, so no
-   * toggle combination can ever include community-plugin code or the sync-state DB.
-   */
+  /** Include every config path except this plugin's directory. Legacy categories are ignored. */
   isIncluded(path: string): boolean {
-    const rel = this.rel(path);
-    if (rel === null) return false;                 // not under configDir
-    if (rel === '') return false;                   // the dir itself is not a file
-    if (!this.opts.settings.syncConfigFolder) return false; // C1: master off
-    // C2/C3: hard exclusions win over every category toggle.
-    if (this.isUnderPluginDir(path)) return false;
-    if (rel === 'plugins' || rel.startsWith('plugins/')) return false;
-    // C4: any enabled category that claims this path.
-    const cs = this.opts.settings.configSync;
-    for (const cat of CONFIG_SYNC_CATEGORIES) {
-      if (cs[cat.key] && cat.matches(rel)) return true;
-    }
-    return false; // C5
+    if (!this.isUnderConfigDir(path) || !this.opts.settings.syncConfigFolder) return false;
+    return !this.isUnderPluginDir(path) && !isSyncTmpPath(path);
   }
 
-  /** True iff `path` is an included config-folder file (used to route conflicts to newest-wins). */
+  /** The plugin directory and its ancestors must never be removed as a subtree. */
+  isProtectedDirectory(path: string): boolean {
+    const canonical = normalizePath(path).toLowerCase();
+    return this.isUnderPluginDir(path) || normalizePath(this.opts.pluginDir).toLowerCase().startsWith(`${canonical}/`);
+  }
+
   isConfigFolderConflictPath(path: string): boolean {
     return this.isUnderConfigDir(path) && this.isIncluded(path);
   }
 
-  /**
-   * Concrete config-folder paths to inject into the local scan. Enumerates only what is in
-   * scope — fixed files that exist + a recursive listing of themes/ and snippets/. Never lists
-   * `plugins/`. Every returned path P satisfies `isIncluded(P) === true`.
-   */
   async enumerateIncludedPaths(): Promise<string[]> {
-    if (!this.opts.settings.syncConfigFolder) return [];
-    const cd = this.opts.configDir;
-    const cs = this.opts.settings.configSync;
-    const out: string[] = [];
-
-    const exactFiles: string[] = [];
-    if (cs.bookmarks) exactFiles.push('bookmarks.json');
-    if (cs.others) exactFiles.push('appearance.json', 'app.json', 'hotkeys.json', ...CORE_PLUGIN_CONFIG_FILES);
-    for (const rel of exactFiles) {
-      const p = `${cd}/${rel}`;
-      const st = await this.opts.localAdapter.stat(p);
-      if (st) out.push(p);
-    }
-
-    if (cs.others) {
-      await this.listRecursive(`${cd}/themes`, out);
-      await this.listRecursive(`${cd}/snippets`, out);
-    }
-
-    return Array.from(new Set(out));
+    return (await this.enumerate()).files;
   }
 
-  private async listRecursive(dir: string, out: string[]): Promise<void> {
-    try {
+  async enumerateIncludedDirectories(): Promise<string[]> {
+    return (await this.enumerate()).folders;
+  }
+
+  private async enumerate(): Promise<{ files: string[]; folders: string[] }> {
+    const files = new Set<string>();
+    const folders = new Set<string>();
+    if (!this.opts.settings.syncConfigFolder) return { files: [], folders: [] };
+    const visit = async (dir: string): Promise<void> => {
+      if (!this.isIncluded(dir) || folders.has(dir)) return;
+      folders.add(dir);
+      // A failed read must abort the scan: interpreting it as an empty directory could delete
+      // previously synced files on the server. A missing config directory is likewise an error.
       const listing = await this.opts.localAdapter.list(dir);
-      for (const f of listing.files) out.push(f);
-      for (const sub of listing.folders) await this.listRecursive(sub, out);
-    } catch {
-      /* directory absent or unreadable — nothing to inject */
-    }
+      for (const f of listing.files) if (this.isIncluded(f)) files.add(f);
+      for (const sub of listing.folders) await visit(sub);
+    };
+    await visit(this.opts.configDir);
+    return { files: [...files], folders: [...folders] };
   }
 }

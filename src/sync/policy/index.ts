@@ -133,8 +133,6 @@ export function isSystemExcluded(path: string, ctx: SystemExclusionContext): boo
   // Ordinary vault files (outside the config folder) are never system-excluded.
   if (!ctx.isUnderConfigDir(path)) return false;
   // Inside the config folder: excluded unless an enabled config-sync category includes it.
-  // Community plugins (plugins/) and the plugin's own state DB are never included (hard
-  // exclusions inside ConfigSyncResolver), so the remote-deletion scope guard — which also
-  // calls this function — keeps protecting them.
+  // ConfigSyncResolver includes the complete folder and always excludes this plugin's own directory.
   return !ctx.isConfigPathIncluded(path);
 }

@@ -39,6 +39,8 @@ export interface MirrorProgress {
 
 export interface MirrorDeps {
   app: App;
+  enumerateIncludedConfigDirectories?(): Promise<string[]>;
+  isProtectedDirectory?(path: string): boolean;
   localAdapter: Pick<LocalAdapter, 'stat' | 'readBinary'>;
   stateDB: Pick<StateDB,
     'getFile' | 'setFile' | 'getAllFiles' | 'deleteFile' | 'deleteDir'
@@ -87,6 +89,7 @@ export class MirrorService {
     const localStats = new Map<string, { size: number; mtime: number }>();
     await this.deps.localScanner.collectLocalStats(localStats);
     for (const p of await this.deps.enumerateIncludedConfigPaths()) {
+      if (this.deps.isSystemExcluded(p)) continue;
       const st = await this.deps.localAdapter.stat(p);
       if (st) localStats.set(p, { size: st.size, mtime: st.mtime });
     }
@@ -121,7 +124,10 @@ export class MirrorService {
     const vault = this.deps.app.vault as Vault & { getAllFolders?: (includeRoot?: boolean) => TFolder[] };
     const localDirs = (vault.getAllFolders?.() ?? []).map((f) => f.path).filter((p) => p && p !== '/');
 
-    return buildMirrorPlan(remoteFiles, localFiles, localDirs, (p) => this.deps.isSystemExcluded(p), true);
+    localDirs.push(...await this.deps.enumerateIncludedConfigDirectories?.() ?? []);
+    const plan = buildMirrorPlan(remoteFiles, localFiles, [...new Set(localDirs)], (p) => this.deps.isSystemExcluded(p), true);
+    plan.deleteDirs = plan.deleteDirs.filter(p => !this.deps.isProtectedDirectory?.(p));
+    return plan;
   }
 
   /**
@@ -157,6 +163,7 @@ export class MirrorService {
 
     // 1. Downloads (remote wins — forced overwrite, not a 3-way merge).
     for (const remote of plan.downloads) {
+      if (this.deps.isSystemExcluded(remote.path)) { tick(); continue; }
       const remoteId = remote.checksum ?? remote.etag ?? String(remote.size);
       const idType: FileState['idType'] = remote.checksum ? 'sha256' : (remote.etag ? 'etag' : 'size');
       try {

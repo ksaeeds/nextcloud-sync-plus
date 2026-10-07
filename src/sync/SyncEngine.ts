@@ -218,6 +218,7 @@ export class SyncEngine {
       autoMergeFileTypes: () => this.opts.settings.autoMergeFileTypes,
     });
     this.transfer = new TransferService({
+      isSystemExcluded: (p) => this.isSystemExcluded(p),
       localAdapter: opts.localAdapter,
       stateDB: opts.stateDB,
       journal: this.journal,
@@ -238,11 +239,13 @@ export class SyncEngine {
       mergeBase: this.mergeBase,
       transfer: this.transfer,
       isSystemExcluded: (p) => this.isSystemExcluded(p),
+      isProtectedDirectory: (p) => this.configSync.isUnderConfigDir(p) && this.configSync.isProtectedDirectory(p),
       dropCleanSnapshot: (p) => this.resolution.dropCleanSnapshot(p),
       markOwnEvent: (p) => this.opts.localAdapter.ignore(p),
       logger: opts.logger,
     });
     this.resolution = new ResolutionService({
+      isSystemExcluded: (p) => this.isSystemExcluded(p),
       localAdapter: opts.localAdapter,
       stateDB: opts.stateDB,
       historyStore: opts.historyStore,
@@ -255,6 +258,7 @@ export class SyncEngine {
       logger: opts.logger,
     });
     this.conflicts = new ConflictApplier({
+      isSystemExcluded: (p) => this.isSystemExcluded(p),
       app: opts.app,
       localAdapter: opts.localAdapter,
       stateDB: opts.stateDB,
@@ -264,6 +268,7 @@ export class SyncEngine {
       transfer: this.transfer,
       resolution: this.resolution,
       resolverConfig: () => ({
+        configDir: this.opts.configDir,
         autoMergeFileTypes: this.opts.settings.autoMergeFileTypes,
         autoMergeFileStrategy: this.opts.settings.autoMergeFileStrategy,
         otherFileStrategy: this.opts.settings.otherFileStrategy,
@@ -277,6 +282,8 @@ export class SyncEngine {
       logger: opts.logger,
     });
     this.directories = new DirectoryReconciler({
+      enumerateIncludedConfigDirectories: () => this.configSync.enumerateIncludedDirectories(),
+      isProtectedDirectory: (p) => this.configSync.isUnderConfigDir(p) && this.configSync.isProtectedDirectory(p),
       app: opts.app,
       stateDB: opts.stateDB,
       journal: this.journal,
@@ -290,6 +297,7 @@ export class SyncEngine {
       logger: opts.logger,
     });
     this.watch = new WatchOperations({
+      isProtectedDirectory: (p) => this.configSync.isUnderConfigDir(p) && this.configSync.isProtectedDirectory(p),
       localAdapter: opts.localAdapter,
       stateDB: opts.stateDB,
       historyStore: opts.historyStore,
@@ -315,6 +323,8 @@ export class SyncEngine {
       logger: opts.logger,
     });
     this.mirror = new MirrorService({
+      enumerateIncludedConfigDirectories: () => this.configSync.enumerateIncludedDirectories(),
+      isProtectedDirectory: (p) => this.configSync.isUnderConfigDir(p) && this.configSync.isProtectedDirectory(p),
       app: opts.app,
       localAdapter: opts.localAdapter,
       stateDB: opts.stateDB,
@@ -958,6 +968,7 @@ export class SyncEngine {
           const rt = this.getOrCreateRenameTracker();
           const remoteRenames = rt.detectRemoteRenames(remoteFiles);
           for (const [oldPath, newPath] of remoteRenames) {
+            if (this.isSystemExcluded(oldPath) || this.isSystemExcluded(newPath)) continue;
             await rt.applyRemoteRename(oldPath, newPath);
           }
 
@@ -1379,9 +1390,9 @@ export class SyncEngine {
     // Scan local files in scope for sync (both new and modified).
     const localStats = new Map<string, { size: number; mtime: number }>();
     await this.collectLocalStats('', localStats);
-    // The config folder is not scanned recursively, so explicitly inject the enabled
-    // config-sync category files (bookmarks, themes/snippets, appearance, etc.).
+    // Config files are absent from the Vault index; inject the recursive Adapter scan.
     for (const p of await this.configSync.enumerateIncludedPaths()) {
+      if (this.isSystemExcluded(p)) continue;
       const st = await this.opts.localAdapter.stat(p);
       if (st) localStats.set(p, { size: st.size, mtime: st.mtime });
     }

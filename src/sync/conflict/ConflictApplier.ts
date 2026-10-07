@@ -39,6 +39,7 @@ export interface Connection {
 }
 
 export interface ConflictDeps {
+  isSystemExcluded?(path: string): boolean;
   app: App;
   localAdapter: LocalAdapter;
   stateDB: Pick<StateDB, 'getFile' | 'setFile' | 'setRemoteRootEtag'>;
@@ -66,6 +67,7 @@ export class ConflictApplier {
     path: string, base: FileState | undefined, remote: RemoteFileInfo,
     remoteId: string, idType: FileState['idType'], summary: SyncSessionSummary,
   ): Promise<void> {
+    if (this.deps.isSystemExcluded?.(path)) return;
     this.deps.onConflictEncountered(); // C-6: lets the watch path notice a conflict settled without a counter
     // Size guard (spec 035, FR-010): a both-sides conflict needs the remote body to merge, but an
     // oversized remote cannot be fetched without risking OOM. Skip the download, keep local untouched,
@@ -88,10 +90,10 @@ export class ConflictApplier {
 
     // Feature 037: a single per-type strategy replaces the former three conflict settings. The
     // ConflictResolver classifies the path (Auto Merge File / Other File) and applies its strategy.
-    // Config-folder JSON (appearance.json, etc.) has no special branch any more: its extension is not
-    // in autoMergeFileTypes, so it falls to `otherFileStrategy` (default latest-mtime = newest-wins),
-    // which never writes markers — JSON-safe, single path (FR-013).
-    const resolver = new ConflictResolver(this.deps.app, this.deps.localAdapter, this.deps.resolverConfig());
+    // Complete config files, including plugin bundles, use newest whole-file resolution.
+    const config = this.deps.resolverConfig();
+    const resolver = new ConflictResolver(this.deps.app, this.deps.localAdapter, config);
+    const configPath = !!config.configDir && path.startsWith(`${config.configDir}/`);
     const ctx = {
       localSize: localSizeBefore,
       remoteSize: remote.size,
@@ -105,7 +107,7 @@ export class ConflictApplier {
     // remote download until we know it is required.
     let remoteData: ArrayBuffer | undefined;
     let decision: ConflictResolution;
-    if (resolver.strategyFor(path) === 'merge' || isMarkdown(path)) {
+    if (resolver.strategyFor(path) === 'merge' || (isMarkdown(path) && !configPath)) {
       const localContent = await this.deps.localAdapter.read(path);
       remoteData = await conn.client.downloadFile(remote.path);
       const remoteContent = new TextDecoder().decode(remoteData);

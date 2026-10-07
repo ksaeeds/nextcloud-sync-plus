@@ -24,6 +24,7 @@ import { collectSubtreePaths, dropSubtreeTracking } from './subtreeTracking';
 
 export interface DeletionDeps {
   app: App;
+  isProtectedDirectory?(path: string): boolean;
   stateDB: Pick<StateDB, 'deleteFile' | 'getFile' | 'getAllFiles' | 'getAllDirs' | 'deleteDir'>;
   journal: SyncJournal;
   mergeBase: MergeBaseRecorder;
@@ -147,7 +148,7 @@ export class DeletionService {
     // this guard it would reach the raw fs remove below and permanently destroy config the sync
     // engine otherwise never touches. Every other server-driven sink already filters with
     // isSystemExcluded; enforcing it here covers all callers (incremental + full-scan).
-    if (this.deps.isSystemExcluded(path)) {
+    if (this.deps.isSystemExcluded(path) || this.deps.isProtectedDirectory?.(path)) {
       void this.deps.logger?.log(`delete-local: ignored out-of-scope remote deletion → ${path}`);
       return;
     }
@@ -175,7 +176,15 @@ export class DeletionService {
         // directly so the deletion is never silently skipped. Defense-in-depth: only when the
         // path is safe (no traversal / not absolute), so an attacker-controlled remote path can
         // never reach this raw fs sink even if the boundary guard is ever bypassed.
-        await this.deps.app.vault.adapter.remove(normalized);
+        const adapter = this.deps.app.vault.adapter;
+        const stat = await adapter.stat?.(normalized);
+        if (stat?.type === 'folder') {
+          const listing = await adapter.list(normalized);
+          if (listing.files.length || listing.folders.length) throw new Error(`Directory is not empty: ${path}`);
+          await adapter.rmdir(normalized, false);
+        } else {
+          await adapter.remove(normalized);
+        }
         summary.downloadedCount++;
         this.deps.journal.recordHistory(path, 'deleted'); // remote deletion applied locally (config dotfile)
       }

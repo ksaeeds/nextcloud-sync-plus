@@ -41,6 +41,7 @@ export interface Connection {
 }
 
 export interface ResolutionDeps {
+  isSystemExcluded?(path: string): boolean;
   localAdapter: Pick<LocalAdapter, 'stat' | 'readBinary' | 'atomicWriteBinary' | 'setMtime'>;
   stateDB: Pick<StateDB, 'getFile' | 'setFile' | 'save' | 'countConflicted'>;
   historyStore?: Pick<SyncHistoryStore, 'save'>;
@@ -158,7 +159,12 @@ export class ResolutionService {
    * next sync sees no spurious change. Rejects on failure so the caller can surface it (and records
    * nothing in that case).
    */
+  private requireSyncPath(path: string): void {
+    if (this.deps.isSystemExcluded?.(path)) throw new Error(`Path is excluded from sync: ${path}`);
+  }
+
   async pushLocalToRemote(conn: Connection, path: string): Promise<void> {
+    this.requireSyncPath(path);
     const stat = await this.deps.localAdapter.stat(path);
     if (!stat) throw new Error(`Local file not found: ${path}`);
     const localData = await this.deps.localAdapter.readBinary(path);
@@ -193,6 +199,7 @@ export class ResolutionService {
    * failure (local left unchanged when the download fails before any write).
    */
   async pullRemoteToLocal(client: IWebDAVClient, path: string): Promise<void> {
+    this.requireSyncPath(path);
     const remote = await this.fetchRemoteInfo(client, path);
     if (!remote) throw new Error(`Remote file not found: ${path}`);
 
@@ -300,6 +307,7 @@ export class ResolutionService {
   private async applyCleanSide(
     conn: Connection, path: string, content: string, side: 'local' | 'remote',
   ): Promise<void> {
+    this.requireSyncPath(path);
     const data = new TextEncoder().encode(content).buffer;
     const mtime = Date.now();
     const remote = await this.fetchRemoteInfo(conn.client, path);

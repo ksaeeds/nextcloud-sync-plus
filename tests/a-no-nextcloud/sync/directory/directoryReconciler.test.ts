@@ -504,3 +504,48 @@ describe('[SPEC:DTV-3] DirectoryReconciler.reconcileDirectories — a plugin tra
     expect(calls.markOwnEvent).toEqual([]);
   });
 });
+
+
+describe('Plus hidden config directories', () => {
+  it('enumerates empty hidden folders and never mistakes them for local deletions', async () => {
+    const paths = ['.obsidian', '.obsidian/plugins', '.obsidian/plugins/other', '.obsidian/plugins/other/empty'];
+    const { reconciler, client, calls } = build({ remote: paths.map(p => dir(p)), tracked: paths.map(path => ({ path, remoteFileId: null })) },
+      { enumerateIncludedConfigDirectories: async () => paths });
+    await reconciler.reconcileDirectories(client, summary());
+    expect(calls.deleteCollection).toEqual([]);
+    expect(calls.mkdir).toEqual([]);
+    expect(calls.setDir).toEqual(paths);
+  });
+  it('creates an empty hidden folder on the server', async () => {
+    const { reconciler, client, calls } = build({}, { enumerateIncludedConfigDirectories: async () => ['.obsidian/plugins/other/empty'] });
+    await reconciler.reconcileDirectories(client, summary());
+    expect(calls.createDirectory).toEqual(['.obsidian/plugins/other/empty']);
+  });
+  it('refuses forced parent-directory deletion before calling the remote', async () => {
+    const { reconciler, client, calls } = build({}, { isProtectedDirectory: p => p === '.obsidian/plugins' });
+    await expect(reconciler.resolveSkippedDir(client, '.obsidian/plugins', 'deleteRemote', 'local')).rejects.toThrow('Protected directory');
+    expect(calls.deleteCollection).toEqual([]);
+  });
+});
+
+
+describe('Plus hidden directory removal', () => {
+  it.each([false, true])('only removes an empty hidden directory (nonempty=%s)', async (nonempty) => {
+    const path = '.obsidian/plugins/other/empty';
+    const rmdir = jest.fn(async () => undefined);
+    const app = { vault: { getAllFolders: () => [], getAbstractFileByPath: () => null,
+      adapter: { exists: async () => true, list: async () => ({ files: nonempty ? [`${path}/keep.bin`] : [], folders: [] }), rmdir } } };
+    const { reconciler, client, calls } = build({ tracked: [{ path, remoteFileId: null }] },
+      { app: app as never, enumerateIncludedConfigDirectories: async () => [path] });
+    const s = summary();
+    await reconciler.reconcileDirectories(client, s);
+    if (nonempty) {
+      expect(rmdir).not.toHaveBeenCalled();
+      expect(calls.deleteDir).not.toContain(path);
+      expect(s.errorCount).toBe(1);
+    } else {
+      expect(rmdir).toHaveBeenCalledWith(path, false);
+      expect(calls.deleteDir).toContain(path);
+    }
+  });
+});

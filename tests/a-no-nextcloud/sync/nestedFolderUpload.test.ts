@@ -51,7 +51,7 @@ const PLUGIN_DIR = '.obsidian/plugins/nextcloud-sync';
 const MTIME = 1_000;
 
 const SETTINGS: DavSyncSettings = {
-  ...DEFAULT_SETTINGS,
+  ...DEFAULT_SETTINGS, syncConfigFolder: false,
   serverUrl: 'https://nc/remote.php/dav/files/alice/',
   username: 'alice',
   deviceId: 'device-abcd1234',

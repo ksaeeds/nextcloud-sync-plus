@@ -56,6 +56,7 @@ export interface WatchDeps {
   deletion: DeletionService;
   resolution: Pick<ResolutionService, 'dropCleanSnapshot'>;
   isSystemExcluded(path: string): boolean;
+  isProtectedDirectory?(path: string): boolean;
 
   /** Connect (or reuse the connection) and return the client plus its upload strategy. */
   connect(): Promise<Connection>;
@@ -336,7 +337,7 @@ export class WatchOperations {
    * remote delete routes through the Nextcloud trashbin (recoverable); a 404 is the desired end state.
    */
   async deleteSingleFolder(path: string): Promise<void> {
-    if (this.deps.isSystemExcluded(path)) return;
+    if (this.deps.isSystemExcluded(path) || this.deps.isProtectedDirectory?.(path)) return;
     if (!this.deps.stateDB.getDir(path)) return; // untracked → nothing to do on the remote
     // Feature 086: same rule as deleteSingleFile (C-2 row 1). This one had no such guard, and it is
     // the loudest sink there is — a recursive collection DELETE. A running scan trashes folders
@@ -372,6 +373,7 @@ export class WatchOperations {
    * (their 404s are harmless because the parent MOVE already relocated them) and converge next sync.
    */
   async renameSingleFolder(oldPath: string, newPath: string): Promise<void> {
+    if (this.deps.isProtectedDirectory?.(oldPath) || this.deps.isProtectedDirectory?.(newPath)) return;
     if (this.deps.isSystemExcluded(oldPath) && this.deps.isSystemExcluded(newPath)) return;
     const conn = await this.deps.connect();
     this.begin();

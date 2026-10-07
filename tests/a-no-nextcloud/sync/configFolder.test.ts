@@ -38,7 +38,7 @@ function makeEmptyVault(adapter: DataAdapter): Vault {
 const enc = new TextEncoder();
 const toBuf = (s: string): ArrayBuffer => enc.encode(s).buffer;
 const CONFIG_DIR = '.obsidian';
-const PLUGIN_DIR = `${CONFIG_DIR}/plugins/nextcloud-sync`;
+const PLUGIN_DIR = `${CONFIG_DIR}/plugins/nextcloud-sync-plus`;
 
 function settings(syncConfigFolder: boolean, configSync: Partial<ConfigSyncCategories>): DavSyncSettings {
   return {
@@ -60,6 +60,7 @@ describe('SyncEngine local-scan injection (config folder)', () => {
     // Vault is empty (config-folder files are not Vault-tracked); stat provides the file's presence.
     const present = new Set<string>([`${CONFIG_DIR}/appearance.json`]);
     const rawAdapter = makeDataAdapter({
+      list: jest.fn(async (p: string) => ({ files: p === CONFIG_DIR ? [...present] : [], folders: [] })),
       stat: jest.fn(async (p: string) => (present.has(p) ? { size: 3, mtime: 1 } as never : null)),
       readBinary: jest.fn(async () => toBuf('{}')),
     });
@@ -128,15 +129,23 @@ describe('SyncEngine remote-deletion scope guard (config folder hard exclusions)
 
   const allOn = settings(true, { others: true, bookmarks: true });
 
-  it('ignores deletion of a community plugin file even with ALL categories on', async () => {
+  it('processes deletion of other community plugin files', async () => {
     const h = buildDeletionHarness(allOn);
     await h.invoke(`${CONFIG_DIR}/plugins/some-plugin/main.js`);
-    expect(h.remove).not.toHaveBeenCalled();
+    expect(h.remove).toHaveBeenCalledWith(`${CONFIG_DIR}/plugins/some-plugin/main.js`);
   });
 
   it("ignores deletion of this plugin's own state DB even with ALL categories on", async () => {
     const h = buildDeletionHarness(allOn);
     await h.invoke(`${PLUGIN_DIR}/state.json`);
+    expect(h.remove).not.toHaveBeenCalled();
+  });
+
+  it('never deletes parent folders containing Plus', async () => {
+    const h = buildDeletionHarness(allOn);
+    await h.invoke(CONFIG_DIR);
+    await h.invoke(`${CONFIG_DIR}/plugins`);
+    await h.invoke(PLUGIN_DIR);
     expect(h.remove).not.toHaveBeenCalled();
   });
 

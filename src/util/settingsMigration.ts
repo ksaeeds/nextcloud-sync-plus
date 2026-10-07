@@ -29,8 +29,8 @@ export function migrateConfigSyncCategories(
  *
  * Runs once on first upgrade (detected by the new master flag never having been persisted):
  *   - `syncBookmarks === true`  → turn the master ON with ONLY the Bookmarks category enabled,
- *     so bookmarks keep syncing and nothing else under the config folder starts syncing.
- *   - `syncBookmarks` false/absent → leave the master OFF (default); nothing migrates.
+ *     the legacy category fields remain readable; Plus now syncs the complete config folder.
+ *   - `syncBookmarks` false/absent → retain the current default; nothing migrates.
  *
  * Idempotent: once `syncConfigFolder` has been persisted, this is a no-op. Mutates `settings`.
  * Run before {@link pruneObsoleteSettings} so the now-obsolete `syncBookmarks` key is then dropped.
@@ -250,4 +250,13 @@ export function pruneObsoleteSettings(settings: Record<string, unknown>): string
     }
   }
   return removed;
+}
+
+
+/** Enable the new full-folder scope once on upgrade; preserve deliberate later opt-outs. */
+export function migrateFullConfigSync(saved: Partial<DavSyncSettings>, settings: DavSyncSettings): boolean {
+  if (saved.configSyncRevision === 1) return false;
+  settings.syncConfigFolder = true;
+  settings.configSyncRevision = 1;
+  return true;
 }

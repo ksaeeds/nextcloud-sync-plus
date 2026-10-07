@@ -1,5 +1,6 @@
 import { App, Plugin, Notice, Platform, TFile, TFolder, TAbstractFile, debounce } from 'obsidian';
 import { DavSyncSettings, DEFAULT_SETTINGS, FeatureUnsupportedError } from './types';
+import { migrateFullConfigSync } from './util/settingsMigration';
 import { NextcloudSyncSettingTab } from './settings/SettingTab';
 import { SyncEngine } from './sync/SyncEngine';
 import { VersionHistoryModal } from './ui/VersionHistoryModal';
@@ -531,6 +532,7 @@ export default class ObsidianNextcloudsync extends Plugin {
     this.settings.configSync = { ...DEFAULT_SETTINGS.configSync };
     migrateConfigSyncCategories(saved, this.settings);
     migrateBookmarksToConfigSync(saved, this.settings);
+    const fullConfigChanged = migrateFullConfigSync(saved, this.settings);
     // Mobile first-run defaults: override before pruning so they are persisted immediately.
     if (Platform.isMobile) {
       applyMobileFirstRunDefaults(saved, this.settings);
@@ -567,7 +569,7 @@ export default class ObsidianNextcloudsync extends Plugin {
     // `logLevel` / `syncResults*` fields from an earlier 0.3.0-beta), then persist the cleaned
     // settings so data.json no longer carries them (or no longer carries a stale Debug identity).
     const removed = pruneObsoleteSettings(this.settings as unknown as Record<string, unknown>);
-    if (removed.length > 0 || debugReset) {
+    if (removed.length > 0 || debugReset || fullConfigChanged) {
       await this.saveSettings();
     }
   }

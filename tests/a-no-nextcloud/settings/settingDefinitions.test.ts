@@ -185,13 +185,13 @@ describe('[SPEC:DSD-2] row count is dynamic, not a constant', () => {
     expect(three).toBe(STATIC_ROW_COUNT + 3);
   });
 
-  it('adds the two config-sync category rows only while the master toggle is on', () => {
+  it('keeps a single complete-folder control regardless of the master toggle', () => {
     const off = settingRowsIn(buildSettingDefinitions(makeHost())).length;
     const on = settingRowsIn(
       buildSettingDefinitions(makeHost({ settings: { ...DEFAULT_SETTINGS, syncConfigFolder: true } })),
     ).length;
     expect(off).toBe(STATIC_ROW_COUNT);
-    expect(on).toBe(STATIC_ROW_COUNT + 2);
+    expect(on).toBe(STATIC_ROW_COUNT);
   });
 });
 

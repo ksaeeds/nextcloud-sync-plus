@@ -47,6 +47,7 @@ export function hasOrphanMarker(content: string): boolean {
  * independently unit-testable: internal branching is not user freedom.
  */
 export interface MergeConfig {
+  configDir?: string;
   autoMergeFileTypes: string[];
   autoMergeFileStrategy: SyncStrategy;
   otherFileStrategy: Exclude<SyncStrategy, 'merge'>;
@@ -103,12 +104,19 @@ export class ConflictResolver {
    * True when `path`'s extension is configured as an Auto Merge File type (case-insensitive).
    * Files without an extension, or whose extension is not in `autoMergeFileTypes`, are Other Files.
    */
+  private isConfigPath(path: string): boolean {
+    const dir = this.config.configDir;
+    return !!dir && (path === dir || path.startsWith(`${dir}/`));
+  }
+
   isAutoMergeFile(path: string): boolean {
+    if (this.isConfigPath(path)) return false;
     return isAutoMergeFileType(path, this.config.autoMergeFileTypes);
   }
 
   /** The SyncStrategy that applies to `path` after Auto Merge File / Other File classification (CSF-1). */
   strategyFor(path: string): SyncStrategy {
+    if (this.isConfigPath(path)) return 'latest-mtime';
     return this.isAutoMergeFile(path) ? this.config.autoMergeFileStrategy : this.config.otherFileStrategy;
   }
 
@@ -129,7 +137,7 @@ export class ConflictResolver {
     // is resolved by `frontmatterStrategy` and its body by `autoMergeFileStrategy`, independently. Every
     // non-markdown file keeps the whole-file path below (Auto Merge File → autoMergeFileStrategy, Other
     // File → otherFileStrategy).
-    if (isMarkdown(path)) {
+    if (isMarkdown(path) && !this.isConfigPath(path)) {
       return this.decideMarkdown(path, base, local, remote, ctx);
     }
     switch (this.strategyFor(path)) {

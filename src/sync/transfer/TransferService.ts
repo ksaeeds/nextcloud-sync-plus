@@ -29,6 +29,7 @@ import { sha256 } from '../../util/hash';
 import { remoteIdOf } from '../remoteIdentity';
 
 export interface TransferDeps {
+  isSystemExcluded?(path: string): boolean;
   localAdapter: Pick<LocalAdapter, 'stat' | 'readBinary' | 'atomicWriteBinary' | 'setMtime'>;
   stateDB: Pick<StateDB, 'getFile' | 'setFile'>;
   journal: SyncJournal;
@@ -75,6 +76,7 @@ export class TransferService {
     idType: FileState['idType'], remote: RemoteFileInfo,
     summary: SyncSessionSummary,
   ): Promise<void> {
+    if (this.deps.isSystemExcluded?.(path)) return;
     const stat = await this.deps.localAdapter.stat(path);
     if (!stat) return;
 
@@ -148,6 +150,7 @@ export class TransferService {
     remote: RemoteFileInfo, remoteId: string,
     idType: FileState['idType'], summary: SyncSessionSummary,
   ): Promise<void> {
+    if (this.deps.isSystemExcluded?.(remote.path)) return;
     // Size guard (spec 035): skip oversized remote files BEFORE the GET. Covers the normal
     // remote→local download AND the local-delete-vs-remote-edit restore path (both route here). Leave
     // local + Base untouched and do NOT queue a retry: a permanent skip until the cap is raised (then

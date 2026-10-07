@@ -47,6 +47,7 @@ export class LocalScanner {
     }
     // The config folder is not Vault-tracked; inject the enabled config-sync category paths explicitly.
     for (const p of await this.deps.enumerateIncludedConfigPaths()) {
+      if (this.deps.isSystemExcluded(p)) continue;
       const stat = await this.deps.localAdapter.stat(p);
       if (stat) results.set(p, { size: stat.size, mtime: stat.mtime });
     }

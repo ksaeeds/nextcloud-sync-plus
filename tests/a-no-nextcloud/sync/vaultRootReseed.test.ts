@@ -204,7 +204,7 @@ async function buildHarness(o: HarnessOptions) {
   const statusBar = { setStatus: jest.fn(), setSyncComplete: jest.fn(), setProgress: jest.fn() };
 
   const engine = new SyncEngine({
-    app, settings: { ...DEFAULT_SETTINGS, syncOnWifiOnly: false },
+    app, settings: { ...DEFAULT_SETTINGS, syncConfigFolder: false, syncOnWifiOnly: false },
     localAdapter: local, stateDB, statusBar, webdavFactory: { createClient }, logger,
     pluginDir: PLUGIN_DIR, configDir: '.obsidian',
   } as never);

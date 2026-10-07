@@ -2,7 +2,7 @@
 
 Personal fork maintained by Kashif Saeed, based on [Nextcloud Sync 1.0.8 by Daisuke ITO](https://github.com/siosig/obsidian-nextcloudsync/tree/1.0.8), under the original MIT license.
 
-This release changes the display name, plugin ID, and credential namespace. It retains the upstream synchronization behavior and mobile support. The separate ID allows independent settings; enable only one sync plugin for the same remote vault.
+Plus extends upstream with complete config-folder synchronization, a separate plugin ID, and a separate credential namespace. The separate ID allows independent settings; enable only one sync plugin for the same remote vault.
 
 ## Install on iPhone and iPad with BRAT
 
@@ -14,9 +14,15 @@ This release changes the display name, plugin ID, and credential namespace. It r
 
 Release assets contain only plugin code, manifest, styles, and license. Vault notes, local settings, and credentials are not published. Sync against a live Nextcloud server and physical iOS devices has not been verified for this fork.
 
-## What changed (1.0.9)
+## What changed (1.0.10)
 
-Plus branding, a separate plugin ID and credential namespace, and BRAT distribution.
+- Sync the complete Obsidian configuration folder, including other plugins, their settings and assets, workspace layouts, and hidden files and empty folders.
+- Always exclude `plugins/nextcloud-sync-plus/` within the config folder: Plus code, settings, credentials references, and per-device sync state stay local.
+- Config syncing is ON by default. Existing installations enable the full-folder scope once when upgrading to this release; afterward the master toggle can still disable it. The old Bookmarks/Other settings toggles no longer limit the scope.
+- Config-file conflicts choose the newer whole file, including JavaScript and Markdown in plugin folders; config files never receive text-merge markers. Equal timestamps keep both copies unchanged for re-evaluation.
+- Protect Plus and its parent folders from subtree deletion, and refuse excluded transfers even through manual push/pull.
+- Reload Obsidian after syncing plugin code or settings. Mobile devices still require compatible plugins. `community-plugins.json` is synchronized as requested, including enabled states.
+- Existing excluded folders and maximum-file-size settings remain effective. Temporary files created by the sync engine remain excluded.
 
 ## Upstream documentation
 
@@ -86,7 +92,7 @@ If you point it at a non-Nextcloud WebDAV server, it automatically disables the 
 - **Rename / move tracking** via Nextcloud file IDs — moving a note doesn't re-upload it everywhere.
 - **Trashbin deletes** — remote deletions use the Nextcloud trashbin (recoverable). When a deletion is applied to your local Vault, it follows **your Obsidian "Deleted files" setting** (system trash / move to `.trash` / permanently delete) rather than forcing one behavior; folders and files outside the Vault's tracked notes (e.g. config-folder files) are handled too.
 - **Per-Vault configuration** — each Vault can target a different Nextcloud server / account without state bleeding between them.
-- **Excluded folders** — register Vault-relative folders that are never synced (neither uploaded nor downloaded, and never created on the server). Useful for version-control or tooling folders such as `.git`, and for large media you keep device-local. Matching is a folder-prefix match at a folder boundary, so `Attachments` excludes `Attachments/` and everything under it but not `Attachments-old`. Add or remove entries under **Settings → Excluded folders** (type a path or use the folder picker). Dotfolders (`.git`, the config-folder `plugins/`, the plugin's own state) are already excluded automatically; this list is an additive layer on top.
+- **Excluded folders** — register Vault-relative folders that are never synced (neither uploaded nor downloaded, and never created on the server). Useful for version-control or tooling folders such as `.git`, and for large media you keep device-local. Matching is a folder-prefix match at a folder boundary, so `Attachments` excludes `Attachments/` and everything under it but not `Attachments-old`. Add or remove entries under **Settings → Excluded folders** (type a path or use the folder picker). Vault-root `.git` and `.trash`, and Nextcloud Sync Plus's own plugin folder, are excluded automatically; this list is an additive layer on top.
 - **Periodic auto-sync** with a configurable interval (set to `0` for manual-only), plus a **Sync now** command.
 - **Sync on file change (watch mode)** — optionally sync immediately after you create, edit, delete, or rename a file **or folder** (file edits are debounced ~2s after you stop typing; deletes, renames and folder operations propagate right away). The status bar shows when a change is being pushed. Toggle on/off in settings; works alongside the periodic interval. Desktop only.
 - **Resilient retries** — failed files are skipped, queued, and retried next sync with exponential backoff; a dropped Wi-Fi connection resumes automatically.
@@ -253,15 +259,14 @@ These are the options you can change. Most start the same on both platforms; a f
 | Server URL / Username / App password | empty | empty |
 | Sync interval | 15 min | 15 min (disabled — use *Sync now* or *Sync on startup*) |
 | Sync on Wi-Fi only | off | on |
-| Sync config folder (master) | off | off |
-| └ Bookmarks / Other settings | on / on | on / on |
+| Sync config folder (complete folder except Plus) | on | on |
 | Auto merge file types | md, txt, cpp, py, c, h, hpp, rs, go, ts, js, java, sh | same |
 | Auto merge file strategy | Merge | Merge |
 | Other file strategy | Latest modified | Latest modified |
 | Enable logging | off | off |
 | Excluded folders | empty | empty |
 
-> The config-folder category toggles (Bookmarks, Other settings) only take effect once the master *Sync config folder* is on.
+> Legacy category toggles are ignored. **Sync config folder** controls the complete folder, except Plus itself.
 
 ### Fixed values (all platforms)
 
@@ -308,14 +313,14 @@ These tests exist specifically to prevent sync-inconsistency states — **data l
 - App passwords / credentials are kept in Obsidian's **secret credentials store**, never written in plain text to `data.json`.
 - Your **main account password is never used or stored** — only app passwords (issued manually or via Login Flow v2).
 - All network traffic uses Obsidian's `requestUrl` API.
-- The Obsidian config folder (`.obsidian/`) is excluded from sync by default — only your notes and other vault files are synced. You can opt in to syncing selected parts of it via **Sync config folder** (see below). **Community plugins (`.obsidian/plugins/`) and the plugin's own sync-state database are never synced**, regardless of settings — they hold executable code and device-specific state, which is unsafe to overwrite across devices.
+- The complete Obsidian config folder syncs when **Sync config folder** is enabled (default ON). Only Nextcloud Sync Plus’s own plugin folder is always excluded. User exclusions and file-size limits still apply.
 
 ---
 
 ## Limitations
 
 - **End-to-end encryption (E2EE)** relies on the HTTPS transport layer; the plugin does not add a redundant encryption layer of its own. This is a deliberate trade-off favouring maximum transport security and performance.
-- **Config folder sync is opt-in.** Enable **Sync config folder** in settings to sync `.obsidian/` config across devices, chosen with two toggles: **Bookmarks** and **Other settings** (appearance, themes & snippets, hotkeys, and core-plugin settings). **Community plugins and the plugin's own sync-state database are never synced** (executable code / device-specific state). A synced change to core-plugin settings may require an Obsidian restart on the other device to take effect.
+- **Config folder sync includes other community plugins, their settings, and workspace files.** Reload Obsidian to apply downloaded plugins or settings. Plus itself remains local.
 - Designed primarily for Markdown / text Vaults; single files in the hundreds-of-MB range are beyond the v1 design target.
 - Keep the Vault on local storage — don't double-manage it with another cloud sync (e.g. iCloud Drive) at the same time.
 - Nextcloud-specific features require a compatible server version; older or non-Nextcloud servers transparently fall back to core WebDAV sync.
@@ -339,4 +344,4 @@ Bug reports and ideas are genuinely welcome. The plugin is still maturing, and m
 
 ## Validation
 
-`pnpm run build`, `pnpm run lint`, and `pnpm run secretlint` pass. The initial upstream test run passed 1,580 tests across 147 suites. One additional suite (`sliderLimits.test.ts`) cannot load because upstream does not publish `specs/main/desktop/settings.html`. `pnpm run test:portable` excludes that suite and forces Jest to exit because upstream leaves asynchronous handles open. Live-server and physical iOS tests require separate validation.
+`pnpm run build`, `pnpm run lint`, and `pnpm run secretlint` pass. The fork has regression tests for recursive config scanning, self-exclusion, whole-file config conflicts, excluded transfers, hidden-directory reconciliation, and parent-directory protection. One additional suite (`sliderLimits.test.ts`) cannot load because upstream does not publish `specs/main/desktop/settings.html`. `pnpm run test:portable` excludes that suite and forces Jest to exit because upstream leaves asynchronous handles open. Live-server and physical iOS tests require separate validation.

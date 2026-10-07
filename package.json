@@ -1,6 +1,6 @@
 {
   "name": "nextcloud-sync-plus",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "Bidirectional sync between Obsidian and Nextcloud",
   "main": "main.js",
   "packageManager": "pnpm@12.3.4",

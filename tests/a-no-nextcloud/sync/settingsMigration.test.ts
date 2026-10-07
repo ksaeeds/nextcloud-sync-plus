@@ -190,10 +190,10 @@ describe('migrateBookmarksToConfigSync', () => {
     expect(settings.syncConfigFolder).toBe(false);
   });
 
-  it('leaves the master off when no legacy syncBookmarks key is present', () => {
+  it('keeps the Plus default when no legacy syncBookmarks key is present', () => {
     const settings = freshSettings();
     migrateBookmarksToConfigSync({}, settings);
-    expect(settings.syncConfigFolder).toBe(false);
+    expect(settings.syncConfigFolder).toBe(true);
   });
 
   it('is idempotent: does nothing once syncConfigFolder has been persisted', () => {

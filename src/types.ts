@@ -1,14 +1,6 @@
 // Shared type definitions for nextcloud-sync
 
-/**
- * Opt-in flags for `.obsidian` config-folder sync (issue #1). Each flag is only consulted when the
- * master `syncConfigFolder` setting is on. Community plugins and the plugin's own sync-state DB are
- * intentionally NOT representable here — they are permanent hard exclusions.
- *
- * Feature 029 collapsed the former five categories into two: Bookmarks stays on its own, and
- * everything else (appearance, themes & snippets, hotkeys, core-plugin settings) is grouped under
- * `others`. The detailed file mapping lives in `ConfigSyncResolver.CONFIG_SYNC_CATEGORIES`.
- */
+/** Legacy category flags retained to load older settings. Plus full-folder sync ignores them. */
 export interface ConfigSyncCategories {
   /** bookmarks.json (migrated from the former standalone `syncBookmarks` setting) */
   bookmarks: boolean;
@@ -124,14 +116,13 @@ export interface DavSyncSettings {
    */
   massDeleteLimit: number;
   /**
-   * Master opt-in for syncing parts of the Obsidian config folder (Vault#configDir, e.g. `.obsidian`).
-   * Default OFF. While off, nothing under the config folder is synced (notes-only behaviour).
-   * When on, the individual `configSync` categories below decide what is included.
-   * Community plugins (`<configDir>/plugins/`) and this plugin's own state DB are NEVER synced,
-   * regardless of these flags.
+   * Sync the complete Obsidian config folder, excluding this plugin's own directory.
+   * Default ON. Can be disabled to sync ordinary vault content only.
    */
   syncConfigFolder: boolean;
-  /** Per-category opt-in for config-folder sync. Only consulted when `syncConfigFolder` is true. */
+  /** One-time Plus full-folder scope migration. */
+  configSyncRevision: number;
+  /** Legacy category settings, retained for compatibility but ignored by full-folder syncing. */
   configSync: ConfigSyncCategories;
   /** User-facing device label. Empty ⇒ derive "<platform>-<deviceId6>". Sanitized for filenames at use sites. */
   deviceName: string;
@@ -216,7 +207,8 @@ export const DEFAULT_SETTINGS: DavSyncSettings = {
   // These category defaults take effect only once the user turns the master on.
   // Migrated `syncBookmarks: true` users get bookmarks-only instead
   // (see migrateBookmarksToConfigSync); `syncBookmarks` itself is removed and pruned.
-  syncConfigFolder: false,
+  syncConfigFolder: true,
+  configSyncRevision: 1,
   configSync: {
     bookmarks: true,
     others: true,

@@ -5,8 +5,8 @@ import { DEFAULT_SETTINGS } from '../../../src/types';
 import { migrateBookmarksToConfigSync } from '../../../src/util/settingsMigration';
 
 describe('spec 014 — config folder sync (defaults & migration)', () => {
-  it('FR-001: master "sync config folder" defaults OFF', () => {
-    expect(DEFAULT_SETTINGS.syncConfigFolder).toBe(false);
+  it('FR-001: master "sync config folder" defaults ON', () => {
+    expect(DEFAULT_SETTINGS.syncConfigFolder).toBe(true);
   });
 
   it('FR-011: legacy syncBookmarks=true → master ON + ONLY Bookmarks category', () => {
@@ -16,10 +16,10 @@ describe('spec 014 — config folder sync (defaults & migration)', () => {
     expect(s.configSync).toEqual({ bookmarks: true, others: false });
   });
 
-  it('FR-011: legacy syncBookmarks=false → master stays OFF', () => {
+  it('FR-011: legacy syncBookmarks=false uses the Plus full-config default', () => {
     const s = { ...DEFAULT_SETTINGS, configSync: { ...DEFAULT_SETTINGS.configSync } };
     migrateBookmarksToConfigSync({ syncBookmarks: false }, s);
-    expect(s.syncConfigFolder).toBe(false);
+    expect(s.syncConfigFolder).toBe(true);
   });
 
   it('FR-012: idempotent — once syncConfigFolder is persisted, no re-migration', () => {

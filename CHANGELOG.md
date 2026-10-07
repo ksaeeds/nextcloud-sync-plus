@@ -1,5 +1,14 @@
 # Nextcloud Sync Plus changelog
 
+## [1.0.10] - 2026-10-07
+
+- Sync the complete configuration folder, including community plugins, their assets and settings, and workspace layouts; exclude Plus itself.
+- Default config sync to ON and remove selective category controls.
+- Enumerate hidden and empty configuration directories with the Adapter API.
+- Protect Plus and its ancestors during deletions, mirror, watch-folder operations, and manual transfers.
+- Resolve configuration conflicts as whole files by latest modification time, never text-merge plugin code.
+- Abort unreadable config scans rather than interpreting them as missing local files.
+
 ## [1.0.9] - 2026-10-07
 
 - Personal fork of upstream 1.0.8 with Plus branding and a separate plugin ID and credential namespace.
