@@ -28,6 +28,13 @@ export class NoticeStatusBar implements IStatusBar {
     this.ensureNotice('🔄 Syncing…');
   }
 
+  /** Show the current preparation/finalization stage in the same persistent toast. */
+  setPhase(label: string): void {
+    this.clearDismiss();
+    this.ensureNotice(`🔄 ${label}`);
+    this.notice?.setMessage(`🔄 ${label}`);
+  }
+
   /** Show per-file progress, reusing the single toast: "🔄 12/150". */
   setProgress(processed: number, total: number): void {
     this.clearDismiss();

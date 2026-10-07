@@ -436,9 +436,11 @@ export class SyncEngine {
       // AND swallowing the real error (no FAILED log) — every later sync then balks with "already
       // running", and a restart's startup sync re-triggers the same failure and re-strands it.
       void this.opts.logger?.log('sync: connecting (ensureClient)');
+      this.opts.statusBar.setStatus('syncing');
+      this.opts.statusBar.setPhase?.('Connecting…');
       await this.ensureClient();
       this.syncProgress = { processed: 0, total: 0 };
-      this.opts.statusBar.setStatus('syncing');
+      this.opts.statusBar.setPhase?.('Reading remote files…');
 
       const isFirstSync = !this.opts.stateDB.getSyncToken() && this.opts.stateDB.getAllFiles().length === 0;
 
@@ -471,6 +473,7 @@ export class SyncEngine {
       // Best-effort persistence: a save failure must not propagate out of the finally (which would
       // mask the original error and, before the flag move above, strand the running flag).
       try {
+        this.opts.statusBar.setPhase?.('Saving sync results…');
         await this.opts.stateDB.save();
         await this.opts.historyStore?.save(); // persist this session's per-file outcomes (pruned to 24h)
       } catch (persistErr) {
@@ -912,12 +915,15 @@ export class SyncEngine {
       void this.opts.logger?.log('sync: INITIAL — no vault folder on the server yet; the first upload will create it');
       remoteFiles = [];
     }
+    this.opts.statusBar.setPhase?.('Scanning local files…');
     const localFiles = await this.scanLocalFiles();
 
     // Populate missing server-side checksums (computed by the server, no download) so that
     // files already identical on both sides are recognised as unchanged instead of conflicts.
+    this.opts.statusBar.setPhase?.('Checking server checksums…');
     await this.remoteListing.resolveRemoteChecksums(client, remoteFiles, localFiles);
 
+    this.opts.statusBar.setPhase?.('Comparing files…');
     const plan = await this.buildInitialPlan(localFiles, remoteFiles);
     // No recorded state yet, so every local file the server lacks is planned as an UPLOAD —
     // including files that were deleted on another device. This is a resurrection path; log the
@@ -929,12 +935,15 @@ export class SyncEngine {
       'verbose',
     );
 
+    this.opts.statusBar.setPhase?.('Processing files…');
     await this.executePlan(plan, remoteFiles, summary, localFiles);
 
     // Initial sync is always a complete listing → reconcile directory create/delete (DP).
+    this.opts.statusBar.setPhase?.('Reconciling folders…');
     await this.reconcileDirectories(summary);
 
     // Save sync-token
+    this.opts.statusBar.setPhase?.('Updating sync token…');
     const token = await client.getSyncToken();
     this.opts.stateDB.setSyncToken(token);
   }
@@ -1013,6 +1022,7 @@ export class SyncEngine {
 
     // Process each remote file
     const eligible = remoteFiles.filter(f => !this.isSystemExcluded(f.path));
+    this.opts.statusBar.setPhase?.('Processing files…');
     this.syncProgress = { processed: 0, total: eligible.length };
     if (eligible.length > 0) this.opts.statusBar.setProgress(0, eligible.length);
     // Bounded-parallel (P1-A): each remote file is processed by one worker; uploads to the same
@@ -1031,7 +1041,10 @@ export class SyncEngine {
     // Reconcile directory create/delete only from a COMPLETE listing (full scan). The token path's
     // remoteFiles is a partial diff, from which directory absence cannot be read as a deletion.
     // On a short-circuited scan, feed the State-rebuilt directory list so getDirectories('') is skipped.
-    if (isFullScan) await this.reconcileDirectories(summary, fullScanCachedDirs ?? undefined);
+    if (isFullScan) {
+      this.opts.statusBar.setPhase?.('Reconciling folders…');
+      await this.reconcileDirectories(summary, fullScanCachedDirs ?? undefined);
+    }
 
     // Feature 044 self-heal: drop captured clean sides for any path that converged this sync (no longer
     // conflicted), keeping snapshots bounded to currently-conflicted files regardless of the path taken.
@@ -1388,6 +1401,7 @@ export class SyncEngine {
     const remotePathSet = new Set(remoteFiles.map(f => f.path));
 
     // Scan local files in scope for sync (both new and modified).
+    this.opts.statusBar.setPhase?.('Checking local changes…');
     const localStats = new Map<string, { size: number; mtime: number }>();
     await this.collectLocalStats('', localStats);
     // Config files are absent from the Vault index; inject the recursive Adapter scan.
@@ -1750,4 +1764,3 @@ export class SyncEngine {
     });
   }
 }
-

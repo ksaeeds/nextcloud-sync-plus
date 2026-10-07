@@ -3,6 +3,8 @@ import { SyncStatus } from '../types';
 /** Status-bar surface used by the sync engine. Implemented by StatusBarItem and NullStatusBar. */
 export interface IStatusBar {
   setStatus(status: SyncStatus): void;
+  /** Optional for older/custom status surfaces. Replaces stale file progress. */
+  setPhase?(label: string): void;
   setProgress(processed: number, total: number): void;
   setConflictCount(count: number): void;
   setErrorCount(count: number): void;
@@ -34,6 +36,13 @@ export class StatusBarItem implements IStatusBar {
   setStatus(status: SyncStatus): void {
     this.status = status;
     if (status !== 'syncing') this.progressText = '';
+    this.render();
+  }
+
+  /** Show the current preparation/finalization stage instead of stale progress. */
+  setPhase(label: string): void {
+    this.status = 'syncing';
+    this.progressText = label;
     this.render();
   }
 

@@ -23,6 +23,20 @@ describe('NoticeStatusBar', () => {
   });
 
   // ── US1: startup feedback / single toast ─────────────────────────────────
+  it('shows phases and file counts in one persistent toast, then the result', () => {
+    bar.setPhase('Connecting…');
+    bar.setPhase('Reading remote files…');
+    expect(lastNotice().message).toBe('🔄 Reading remote files…');
+    expect(lastNotice().timeout).toBe(0);
+    bar.setProgress(2, 5);
+    expect(lastNotice().message).toBe('🔄 2/5');
+    bar.setPhase('Saving sync results…');
+    expect(lastNotice().message).toBe('🔄 Saving sync results…');
+    bar.setSyncComplete(0, 5, 0, 0);
+    expect(lastNotice().message).toBe('🟢 Synced ↑0 ↓5');
+    expect(NoticeMock.instances).toHaveLength(1);
+  });
+
   it('C2: setStatus("syncing") with no progress creates exactly one toast "🔄 Syncing…"', () => {
     bar.setStatus('syncing');
     expect(NoticeMock.instances).toHaveLength(1);
